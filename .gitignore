@@ -1,0 +1,3 @@
+## don't keep track of these files
+####################################
+*.pyc
