@@ -112,6 +112,63 @@ def printPoses(meshes):
 		print str(mesh.pos) + " " +str(mesh.quat) + " " + str(mesh.prob) + "\n"
 	print "----------------------------------\n"
 
+
+def collisionCheck_staticG(kukaID, static_geometries):
+	isCollision = False
+	# loop through all static geometries (including the true pose)
+	for g in static_geometries:
+		contacts = p.getContactPoints(kukaID, g)
+		if len(contacts) != 0:
+			isCollision = True
+			break
+
+	return isCollision
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Old functionalities kept for legacy
 ########################################################################
 def belief_space_estimator(v, nHypotheses):
