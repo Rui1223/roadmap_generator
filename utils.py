@@ -115,7 +115,7 @@ def printPoses(meshes):
 
 def collisionCheck_staticG(kukaID, static_geometries):
 	isCollision = False
-	# loop through all static geometries (including the true pose)
+	# loop through all static geometries
 	for g in static_geometries:
 		contacts = p.getContactPoints(kukaID, g)
 		if len(contacts) != 0:
@@ -123,6 +123,33 @@ def collisionCheck_staticG(kukaID, static_geometries):
 			break
 
 	return isCollision
+
+def checkEdgeValidity(n1, n2, kukaID, static_geometries):
+	nseg = 100
+	isEdgeValid = True
+	for i in xrange(1, nseg):
+		interm_j1 = min(n1[0], n2[0]) + math.abs(n1[0]-n2[0])/nseg * i
+		interm_j2 = min(n1[1], n2[1]) + math.abs(n1[1]-n2[1])/nseg * i
+		interm_j3 = min(n1[2], n2[2]) + math.abs(n1[2]-n2[2])/nseg * i
+		interm_j4 = min(n1[3], n2[3]) + math.abs(n1[3]-n2[3])/nseg * i
+		interm_j5 = min(n1[4], n2[4]) + math.abs(n1[4]-n2[4])/nseg * i
+		interm_j6 = min(n1[5], n2[5]) + math.abs(n1[5]-n2[5])/nseg * i
+		interm_j7 = min(n1[6], n2[6]) + math.abs(n1[6]-n2[6])/nseg * i
+		intermNode = [interm_j1, interm_j2, interm_j3, interm_j4, 
+											interm_j5, interm_j6, interm_j7]
+		for j in range(1,8):
+			result = p.resetJointState(kukaID,j,intermNode[j-1])
+		p.stepSimulation()
+		#time.sleep(0.05)
+		isCollision = collisionCheck_staticG(kukaID, static_geometries)
+		if isCollision == True:
+			isEdgeValid = False
+
+
+	return isEdgeValid
+
+
+		
 
 
 

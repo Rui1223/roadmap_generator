@@ -71,9 +71,9 @@ rightflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
 				baseVisualShapeIndex=flank_v,basePosition=[0, -0.62, 0.75])
 static_geometries.append(rightflankM)
 #middleflank
-middleflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
-				baseVisualShapeIndex=flank_v,basePosition=[0, 0, 0.75])
-static_geometries.append(middleflankM)
+# middleflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
+# 				baseVisualShapeIndex=flank_v,basePosition=[0, 0, 0.75])
+# static_geometries.append(middleflankM)
 
 #the shape and visual of the flat
 flat_c = p.createCollisionShape(shapeType=p.GEOM_BOX,
@@ -145,21 +145,14 @@ for i in xrange(len(Objects)):
 ##########################################################################
 
 
-ee_trans = []
-ee_quats = []
-for line in open(cam_info_filename, 'r'):
-	[x, y, z, qw, qx, qy, qz] = line.split()
-	ee_trans.append(np.array([x, y, z]).astype(float))
-	ee_quats.append(np.array([qx, qy, qz, qw]).astype(float))
 
-num_poses = len(ee_trans)
-object_postion = np.array([0.21, 0.2, 0.9])
-for i in range(0, num_poses):
-	ee_trans[i] = ee_trans[i] + object_postion
+##############start sampling##################
+f = open("kuka_shelf_roadmap.txt", "w")
 
 nodes = []
 
-nsamples = 1
+nsamples = 5000
+f.write(str(nsamples)+"\n")
 temp_counter = 0
 
 while temp_counter < nsamples:
@@ -175,31 +168,63 @@ while temp_counter < nsamples:
 	for j in range(1,8):
 		result = p.resetJointState(kukaID,j,ikSolution[j-1])
 	p.stepSimulation()
+	#time.sleep(0.05)
 	isCollision = utils.collisionCheck_staticG(kukaID, static_geometries)
-	print "Collision Status: " + str(isCollision)
+	#print "Collision Status: " + str(isCollision)
 	if isCollision == False:
 		nodes.append(ikSolution)
-		temp_counter += 1	
+		## write it into a roadmap file
+		f.write(str(temp_counter) + " " + str(j1) + " " + str(j2) + " " \
+			+ str(j3) + " " + str(j4) + " " + str(j5) + " " + str(j6) + " " \
+			+ str(j7) + "\n")
+		temp_counter += 1
+f.close()
+
+tree = spatial.KDTree(nodes)
+num_neighbors = math.log(nsamples)
+nsteps = 100
+
+# for each node
+for i in xrange(len(nodes)):
+	queryNode = nodes[i]
+	knn = tree.query(queryNode, k=num_neighbors, p=2)
+	# for each neighbor
+	for j in xrange(len(knn[0])):
+		if knn[1][j] == i: ## the neighbor is the query node itself
+			continue 
+		# Otherwise, check the edge validity
+		# between the query node and the the current neighbor
+		neighbor = node[knn[1][j]]
+		isEdgeValid = checkEdgeValidity(queryNode, neighbor, kukaID, 
+															static_geometries)
 
 
 
-# for i in range(0, num_poses):
-# 	# Use NULL space by specifying joint limits
-# 	ikSolution = p.calculateInverseKinematics(kukaID,kuka_ee_idx,ee_trans[i],
-# 									ee_quats[i], ll, ul, jr, rp, home_configuration)
 
-# 	print ikSolution
+# let's look at these joint configurations (if they are valid or feasible)
+# n_line = 0
+# f = open("kuka_shelf_roadmap.txt", "r")
+# for line in f:
+# 	line = line.split()
+# 	n_line += 1
 
-# 	time.sleep(10)
-# 	for j in range(1,8):
-# 		result = p.resetJointState(kukaID,j,ikSolution[j-1])
+# 	if (n_line >=2 and n_line <= 101):
+# 		## These are the lines to read all the samples (joint configurations)
+# 		idx = int(line[0])
+# 		temp_j1 = float(line[1])
+# 		temp_j2 = float(line[2])
+# 		temp_j3 = float(line[3])
+# 		temp_j4 = float(line[4])
+# 		temp_j5 = float(line[5])
+# 		temp_j6 = float(line[6])
+# 		temp_j7 = float(line[7])
+# 		temp_ikSolution = [temp_j1, temp_j2, temp_j3, 
+# 							temp_j4, temp_j5, temp_j6, temp_j7]
+# 		for j in range(1, 8):
+# 			result = p.resetJointState(kukaID,j,temp_ikSolution[j-1])
+# 		p.stepSimulation()
+# 		time.sleep(0.1)
 
-# 	p.stepSimulation()
-# 	# time.sleep(1)
-# 	isCollision = utils.collisionCheck_staticG(kukaID, static_geometries)
-# 	print "Collision Status: " + str(isCollision)
-# 	if isCollision == False:
-# 		nodes.append(ikSolution)
 		
-print (len(nodes))
+#print (len(nodes))
 time.sleep(10000)
