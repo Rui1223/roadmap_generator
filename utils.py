@@ -121,7 +121,22 @@ def collisionCheck_staticG(kukaID, static_geometries):
 		if len(contacts) != 0:
 			isCollision = True
 			break
+	print "static collision? " + "\t" + str(isCollision)
+	return isCollision
 
+def collisionCheck_objects(kukaID, meshDict):
+	isCollision = False
+	# loop through meshes of each object
+	for i in xrange(len(meshDict)):
+		for m in meshDict[i]:
+			contacts = p.getContactPoints(kukaID, m.m)
+			if len(contacts) != 0:
+				isCollision = True
+				print "object collision? " + "\t" + m.meshType
+				break
+		if isCollision:
+			break
+	print "__________________________________________"
 	return isCollision
 
 def checkEdgeValidity(n1, n2, kukaID, static_geometries):
