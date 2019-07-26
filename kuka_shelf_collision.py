@@ -116,7 +116,9 @@ static_geometries.append(standingBaseM)
 Objects = dict()
 # meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-	"target", 2, [0.21, 0.2, 0.9], [0.0, 0.0, 0.0], [0.05, 0.05], 3]
+	"target", 2, [0.0, 0.1, 0.9], [0.0, 0.0, 0.0], [0.05, 0.05], 1]
+# Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
+# 	"target", 2, [0.21, 0.2, 0.9], [0.0, 0.0, 0.0], [0.05, 0.05], 1]
 # Objects[1] = [1, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
 # "lightbulb", "normal", 1.5, [-0.12, 0.25, 0.86], [0.0, 0.0, math.pi/10.0], 
 # 														[0.032, 0.035, 0.06], 3]
@@ -144,14 +146,41 @@ for i in xrange(len(Objects)):
 												Objects[i][7], Objects[i][8])
 ##########################################################################
 
+'''
+#*******************************************************************#
+# Test how IK works
+# tabletop picking (arrive a little bit above the target)
+goalPos_offset = [0.0, 0.0, 0.0]
+goalOri_offset = [0.0, 0.0, 0.0]
+goal_pose_pos = []
+goal_pose_ori = []
+for i in xrange(len(goalPos_offset)):
+	goal_pose_pos.append(Objects[0][5][i] + goalPos_offset[i])
+	goal_pose_ori.append(Objects[0][6][i] + goalOri_offset[i])
+print str(goal_pose_pos) + "---------------------"
+print str(goal_pose_ori) + "---------------------"
+# convert euler angle to quaternion
+goal_pose_quat = utils.euler_to_quaternion(goal_pose_ori[2], goal_pose_ori[1], 
+															goal_pose_ori[0])
 
+isCollision = True
+while isCollision:
+	q_goal = p.calculateInverseKinematics(kukaID, kuka_ee_idx, 
+			goal_pose_pos, goal_pose_quat, ll, ul, jr, rp)
+	for j in range(1,8):
+		result = p.resetJointState(kukaID,j,q_goal[j-1])
+	p.stepSimulation()
+	isCollision = utils.collisionCheck_staticG(kukaID, static_geometries)
+	print "collision for the goal? " + " " + str(isCollision)
+#*******************************************************************#
+'''
 
 ##############start sampling##################
-f = open("kuka_shelf_roadmap.txt", "w")
+f = open("kuka_shelf1_sampling.txt", "w")
 
 nodes = []
 
-nsamples = 5000
+nsamples = 100
 f.write(str(nsamples)+"\n")
 temp_counter = 0
 
@@ -178,25 +207,108 @@ while temp_counter < nsamples:
 			+ str(j3) + " " + str(j4) + " " + str(j5) + " " + str(j6) + " " \
 			+ str(j7) + "\n")
 		temp_counter += 1
-f.close()
 
 tree = spatial.KDTree(nodes)
-num_neighbors = math.log(nsamples)
+num_neighbors = int(math.log(nsamples))
 nsteps = 100
 
+f1 = open("kuka_shelf1_roadmap.txt", "w")
+nedge = 0
 # for each node
 for i in xrange(len(nodes)):
 	queryNode = nodes[i]
 	knn = tree.query(queryNode, k=num_neighbors, p=2)
 	# for each neighbor
 	for j in xrange(len(knn[0])):
-		if knn[1][j] == i: ## the neighbor is the query node itself
+		if knn[1][j] <= i: 
+			# if the neighbor is the query node itself
+			# or if the neighbor index is smaller than query node (which means
+			# it has been checked before)
+			# then skip the edge checking procedure
 			continue 
 		# Otherwise, check the edge validity
 		# between the query node and the the current neighbor
-		neighbor = node[knn[1][j]]
-		isEdgeValid = checkEdgeValidity(queryNode, neighbor, kukaID, 
+		neighbor = nodes[knn[1][j]]
+		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID, 
 															static_geometries)
+		if isEdgeValid:
+			# write this edge information with their cost into the txt file
+			nedge += 1
+			f1.write(str(i) + " " + str(knn[1][j]) + " " + str(knn[0][j]) + "\n")
+	print "finish connecting neighbors for node " + str(i)
+
+################################################################################
+# add the query node (the start and the goal which has no uncertainty so far)
+q_start = [0,0,0,-np.pi/2,0,np.pi/2,0]
+nodes.append(q_start)
+f.write(str(temp_counter) + " " + str(q_start[0]) + " " + str(q_start[1]) + " " \
+	+ str(q_start[2]) + " " + str(q_start[3]) + " " + str(q_start[4]) + " " + \
+	str(q_start[5]) + " " + str(q_start[6]) + "\n")
+temp_counter += 1
+
+
+# tabletop picking (arrive a little bit above the target)
+goalPos_offset = [0.0, 0.0, 0.07]
+goalOri_offset = [0.0, 0.0, 0.0]
+goal_pose_pos = []
+goal_pose_ori = []
+for i in xrange(len(goalPos_offset)):
+	goal_pose_pos.append(Objects[0][5][i] + goalPos_offset[i])
+	goal_pose_ori.append(Objects[0][6][i] + goalOri_offset[i])
+print str(goal_pose_pos) + "---------------------"
+print str(goal_pose_ori) + "---------------------"
+# convert euler angle to quaternion
+goal_pose_quat = utils.euler_to_quaternion(goal_pose_ori[2], goal_pose_ori[1], 
+															goal_pose_ori[0])
+
+isCollision = True
+while isCollision:
+	q_goal = p.calculateInverseKinematics(kukaID, kuka_ee_idx, 
+									goal_pose_pos, ll, ul, jr, rp)
+	for j in range(1,8):
+		result = p.resetJointState(kukaID,j,q_goal[j-1])
+	p.stepSimulation()
+	isCollision = utils.collisionCheck_staticG(kukaID, static_geometries)
+	print "collision for the goal? " + " " + str(isCollision)
+'''
+	if isCollision == False:
+		nodes.append(q_goal)
+		f.write(str(temp_counter) + " " + str(q_goal[0]) + " " + \
+			str(q_goal[1]) + " " + str(q_goal[2]) + " " + str(q_goal[3]) + \
+			" " + str(q_goal[4]) + " " + str(q_goal[5]) + " " + \
+			str(q_goal[6]) + "\n")
+		temp_counter += 1
+
+tree = spatial.KDTree(nodes)
+for i in xrange(nsamples, len(nodes)):
+	queryNode = nodes[i]
+	knn = tree.query(queryNode, k=num_neighbors, p=2)
+	# for each neighbor
+	for j in xrange(len(knn[0])):
+		if i == nsamples:
+			# the q_start
+			if knn[1][j] == i:
+				continue
+		else:
+			# the q_goal
+			if knn[1][j] >= nsamples and knn[1][j] <= i:
+				continue
+		neighbor = nodes[knn[1][j]]
+		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID, 
+															static_geometries)
+		if isEdgeValid:
+			# write this edge information with their cost into the txt file
+			nedge += 1
+			f1.write(str(i) + " " + str(knn[1][j]) + " " + str(knn[0][j]) + "\n")
+	print "finish connecting neighbors for node " + str(i)
+'''		
+################################################################################
+f1.write(str(nedge))
+
+f.close()
+f1.close()	
+
+
 
 
 
