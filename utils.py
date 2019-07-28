@@ -121,7 +121,7 @@ def collisionCheck_staticG(kukaID, static_geometries):
 		if len(contacts) != 0:
 			isCollision = True
 			break
-	print "static collision? " + "\t" + str(isCollision)
+	#print "static collision? " + "\t" + str(isCollision)
 	return isCollision
 
 def collisionCheck_objects(kukaID, meshDict):
@@ -140,7 +140,10 @@ def collisionCheck_objects(kukaID, meshDict):
 	return isCollision
 
 def checkEdgeValidity(n1, n2, kukaID, static_geometries):
-	nseg = 100
+	step = 5 * math.pi / 180
+	nseg = int(math.ceil(max(math.fabs(n1[0]-n2[0]), math.fabs(n1[1]-n2[1]), 
+			math.fabs(n1[2]-n2[2]), math.fabs(n1[3]-n2[3]), math.fabs(n1[4]-n2[4]), 
+			math.fabs(n1[5]-n2[5]), math.fabs(n1[6]-n2[6]))) / step)
 	isEdgeValid = True
 	for i in xrange(1, nseg):
 		interm_j1 = min(n1[0], n2[0]) + math.fabs(n1[0]-n2[0])/nseg * i
