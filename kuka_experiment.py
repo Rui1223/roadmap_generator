@@ -8,6 +8,7 @@ import IPython
 import math
 import random
 import sys
+import os
 
 from scipy import spatial
 import cPickle as pickle
@@ -34,17 +35,25 @@ rp = [0,0,0,-np.pi/2,0,np.pi/2,0]
 # for i in range(p.getNumJoints(kukaID)):
 # 	print(p.getJointInfo(kukaID,i))
 
-# home_configuration = [0,0,0,-np.pi/2,0,np.pi/2,0]
-home_configuration = [0,0,0,0,0,0,0]
-for i in range(1,8):
-	result = p.resetJointState(kukaID,i,home_configuration[i-1])
 
-nHypo = 1
+nHypo = 3
 
 # generate the static geometries
 ######################################################################
 if sys.argv[1] == "table":
+	table_path = "benchmark/table"
+	try:
+		os.mkdir(table_path)
+	except OSError:
+		print "Creation of the directory %s falied\n" % table_path
+	else:
+		pass
+		# print "Successfully created the directory %s" % table_path
+
 	print "---------Enter to table scene!---------"
+	home_configuration = [0,0,0,-np.pi/2,0,np.pi/2,0]
+	for i in range(1,8):
+		result = p.resetJointState(kukaID,i,home_configuration[i-1])
 	#reset the base of Kuka
 	p.resetBasePositionAndOrientation(kukaID, [-0.7, 0, 0], [0, 0, 0, 1])
 	# create the static geometries - table
@@ -59,6 +68,15 @@ if sys.argv[1] == "table":
 	static_geometries.append(tableM)
 ######################################################################	
 	if sys.argv[2] == "1":
+		path = table_path + "/scenario1"
+		try:
+			os.mkdir(path)
+		except OSError:
+			print "Creation of the directory %s falied\n" % path
+		else:
+			pass
+			# print "Successfully created the directory %s" % table1_path
+
 		# generate hypothesis (including the true pose) for each objects
 		# 5 objects includes baseball as the target object
 		##########################################################################
@@ -82,6 +100,15 @@ if sys.argv[1] == "table":
 		goalPos_offset = [-0.03, 0.0, 0.12]
 
 	elif sys.argv[2] == "2":
+		path = table_path + "/scenario2"
+		try:
+			os.mkdir(path)
+		except OSError:
+			print "Creation of the directory %s falied\n" % path
+		else:
+			pass
+			# print "Successfully created the directory %s" % table2_path
+
 		# generate hypothesis (including the true pose) for each objects
 		# 7 objects includes baseball as the target object
 		##########################################################################
@@ -114,6 +141,15 @@ if sys.argv[1] == "table":
 		goalPos_offset = [-0.03, 0.0, 0.127]
 
 	elif sys.argv[2] == "3":
+		path = table_path + "/scenario3"
+		try:
+			os.mkdir(path)
+		except OSError:
+			print "Creation of the directory %s falied\n" % path
+		else:
+			pass
+			# print "Successfully created the directory %s" % table3_path
+
 		# generate hypothesis (including the true pose) for each objects
 		# 10 objects includes baseball as the target object
 		##########################################################################
@@ -121,54 +157,68 @@ if sys.argv[1] == "table":
 		# meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 		Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
 				"target", 2, [0.16, 0.23, 0.05+table_dim[2]], [0.0, 0.0, 0.0], [0.05, 0.05], nHypo]
-		# Objects[1] = [1, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
-		# 		"normal", 2, [0.26, 0.53, 0.05+table_dim[2]], [math.pi/2, 0.0, 
-		# 												math.pi/4.3], [0.03, 0.06, 0.01], nHypo]
-		# Objects[2] = [2, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
-		# 		"normal", 2, [-0.09, 0.31, 0.2+table_dim[2]], [math.pi/2, 0.0, 
-		# 												math.pi/2.6], [0.05, 0.04, 0.3], nHypo]
-		# Objects[3] = [3, "/mesh/ticonderoga_12_pencils/ticonderoga_12_pencils.obj", "pencils", 
-		# 		"normal", 1, [0.16, -0.08, 0.01+table_dim[2]], 
-		# 							[0.0, math.pi/2, -math.pi/8.8], [0.05, 0.04, 0.25], nHypo]
-		# Objects[4] = [4, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
-		# 		"glue", "invisible", 1.5, [0.03, 0.38, 0.11+table_dim[2]], 
-		# 							[math.pi / 2, 0.0, 67*math.pi/180], [0.07, 0.07, 0.5], nHypo]
-		# # Objects[5] = [5, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", 
-		# # 		"coffeeJar", "normal", 2, [-0.2, -0.09, 0.12+table_dim[2]], 
-		# # 								[math.pi/2, 0.0, -math.pi/3.9], [0.026, 0.01, 0.24], nHypo]
-		# Objects[5] = [5, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
-		# 		"glucoseBottle", "normal", 1.5, [0.26, 0.13, 0.1+table_dim[2]], 
-		# 									[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
-		# Objects[6] = [6, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
-		# 		"crayola", "normal", 2, [-0.09, 0.16, 0.09+table_dim[2]], 
-		# 										[math.pi/2, 0.0, math.pi/3], [0.04, 0.03, 0.18], nHypo]
-		# Objects[7] = [7, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
-		# 		"tissueBox", "normal", 1.5, [0.0, 0.0, 0.1+table_dim[2]], 
-		# 									[0.0, math.pi/2, -math.pi/3], [0.03, 0.03, 0.24], nHypo]
-		# Objects[8] = [8, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
-		# 		"brush", "normal", 1, [-0.07, -0.33, 0.02+table_dim[2]], 
-		# 									[0.0, 0.0, -math.pi / 4.5], [0.028, 0.02, 0.2], nHypo]
-		# Objects[9] = [9, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
-		# 		"lightbulb", "phantom", 1.5, [0.15, 0.45, 0.05+table_dim[2]], 
-		# 									[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
+		Objects[1] = [1, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
+				"normal", 2, [0.26, 0.53, 0.05+table_dim[2]], [math.pi/2, 0.0, 
+														math.pi/4.3], [0.03, 0.06, 0.01], nHypo]
+		Objects[2] = [2, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
+				"normal", 2, [-0.09, 0.31, 0.2+table_dim[2]], [math.pi/2, 0.0, 
+														math.pi/2.6], [0.05, 0.04, 0.3], nHypo]
+		Objects[3] = [3, "/mesh/ticonderoga_12_pencils/ticonderoga_12_pencils.obj", "pencils", 
+				"normal", 1, [0.16, -0.08, 0.01+table_dim[2]], 
+									[0.0, math.pi/2, -math.pi/8.8], [0.05, 0.04, 0.25], nHypo]
+		Objects[4] = [4, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
+				"glue", "invisible", 1.5, [0.03, 0.38, 0.11+table_dim[2]], 
+									[math.pi / 2, 0.0, 67*math.pi/180], [0.07, 0.07, 0.5], nHypo]
+		# Objects[5] = [5, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", 
+		# 		"coffeeJar", "normal", 2, [-0.2, -0.09, 0.12+table_dim[2]], 
+		# 								[math.pi/2, 0.0, -math.pi/3.9], [0.026, 0.01, 0.24], nHypo]
+		Objects[5] = [5, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
+				"glucoseBottle", "normal", 1.5, [0.26, 0.13, 0.1+table_dim[2]], 
+											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
+		Objects[6] = [6, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
+				"crayola", "normal", 2, [-0.09, 0.16, 0.09+table_dim[2]], 
+												[math.pi/2, 0.0, math.pi/3], [0.04, 0.03, 0.18], nHypo]
+		Objects[7] = [7, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
+				"tissueBox", "normal", 1.5, [0.0, 0.0, 0.1+table_dim[2]], 
+											[0.0, math.pi/2, -math.pi/3], [0.03, 0.03, 0.24], nHypo]
+		Objects[8] = [8, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
+				"brush", "normal", 1, [-0.07, -0.33, 0.02+table_dim[2]], 
+											[0.0, 0.0, -math.pi / 4.5], [0.028, 0.02, 0.2], nHypo]
+		Objects[9] = [9, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
+				"lightbulb", "phantom", 1.5, [0.15, 0.45, 0.05+table_dim[2]], 
+											[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
 		# pick goal offset
 		goalPos_offset = [-0.03, 0.0, 0.14]
 ###############################################################################################
 
-if sys.argv[1] == "shelf": 
+if sys.argv[1] == "shelf":
+	shelf_path = "benchmark/shelf"
+	try:
+		os.mkdir(shelf_path)
+	except OSError:
+		print "Creation of the directory %s falied\n" % shelf_path
+	else:
+		pass
+		# print "Successfully created the directory %s" % shelf_path
+
 	print "---------Enter to shelf scene!---------"
+	home_configuration = [0,0,0,0,0,0,0]
+	for i in range(1,8):
+		result = p.resetJointState(kukaID,i,home_configuration[i-1])
 	#standingBase
-	standingBase_dim = np.array([0.3, 0.3, 0.5])
+	standingBase_dim = np.array([0.3, 0.3, 0.65])
 	standingBase_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=standingBase_dim/2)
 	standingBase_v = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=standingBase_dim/2)
 	standingBasePosition=[-0.6, 0.0, standingBase_dim[2]/2]
 	standingBaseM = p.createMultiBody(baseCollisionShapeIndex=standingBase_c,
 					baseVisualShapeIndex=standingBase_v,basePosition=standingBasePosition)
 	static_geometries.append(standingBaseM)
+	print "standing base: " + str(standingBaseM)
 	#reset the base of Kuka
 	kukaBasePosition = [standingBasePosition[0], standingBasePosition[1], standingBase_dim[2]+0.005]
-	# kukaBaseOrientation = utils.euler_to_quaternion(-math.pi/2, math.pi, 0.0)
-	kukaBaseOrientation = utils.euler_to_quaternion(math.pi/2, math.pi, 0.0)
+	kukaBaseOrientation = utils.euler_to_quaternion(-math.pi/2, math.pi, 0.0)
+	# kukaBaseOrientation = utils.euler_to_quaternion(math.pi/2, math.pi, 0.0)
+	# kukaBaseOrientation = utils.euler_to_quaternion(0.0, 0.0, 0.0)
 	p.resetBasePositionAndOrientation(kukaID, kukaBasePosition, kukaBaseOrientation)
 	# create the static geometries - shelf
 	# shelfbase
@@ -180,6 +230,7 @@ if sys.argv[1] == "shelf":
 	shelfbaseM = p.createMultiBody(baseCollisionShapeIndex=shelfbase_c,
 					baseVisualShapeIndex=shelfbase_v,basePosition=shelfbasePosition)
 	static_geometries.append(shelfbaseM)
+	print "shelf base: " + str(shelfbaseM)
 	# the shape and visual of the flank
 	flank_dim = np.array([shelfbase_dim[0], 0.06, 1.2])
 	flank_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=flank_dim/2)
@@ -190,16 +241,19 @@ if sys.argv[1] == "shelf":
 	leftflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
 					baseVisualShapeIndex=flank_v,basePosition=leftflankPosition)
 	static_geometries.append(leftflankM)
+	print "left flank: " + str(leftflankM)
 	#rightflank
 	rightflankPosition = [0.0, -shelfbase_dim[1]/2+flank_dim[1]/2, shelfbase_dim[2]+flank_dim[2]/2]
 	rightflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
 					baseVisualShapeIndex=flank_v,basePosition=rightflankPosition)
 	static_geometries.append(rightflankM)
+	print "right flank: " + str(rightflankM)
 	#middleflank
 	middleflankPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]/2]
 	middleflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
 					baseVisualShapeIndex=flank_v,basePosition=middleflankPosition)
 	static_geometries.append(middleflankM)
+	print "middle flank: " + str(middleflankM)
 	#the shape and visual of the flat
 	flat_dim = np.array([shelfbase_dim[0], shelfbase_dim[1], 0.06])
 	flat_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=flat_dim/2)
@@ -209,13 +263,14 @@ if sys.argv[1] == "shelf":
 	middleflatPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]/2]
 	middleflatM = p.createMultiBody(baseCollisionShapeIndex=flat_c,
 					baseVisualShapeIndex=flat_v,basePosition=middleflatPosition)
-	static_geometries.append(middleflatM)		
+	static_geometries.append(middleflatM)	
+	print "middle flat: " + str(middleflatM)
 	#topflat
 	topflatPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]+flat_dim[2]/2]
 	topflatM = p.createMultiBody(baseCollisionShapeIndex=flat_c,
 					baseVisualShapeIndex=flat_v,basePosition=topflatPosition)
 	static_geometries.append(topflatM)
-
+	print "top flat: " + str(topflatM)
 	#back
 	shelfback_dim = np.array([0.02, shelfbase_dim[1], flank_dim[2]+flat_dim[2]])
 	shelfback_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=shelfback_dim/2)
@@ -225,46 +280,66 @@ if sys.argv[1] == "shelf":
 	shelfbackM = p.createMultiBody(baseCollisionShapeIndex=shelfback_c,
 					baseVisualShapeIndex=shelfback_v,basePosition=shelfbackPosition)
 	static_geometries.append(shelfbackM)
+	print "shelf back: " + str(shelfbackM)
 ######################################################################
 	if sys.argv[2] == "1":
+		path = shelf_path + "/scenario1"
+		try:
+			os.makedirs(path)
+		except OSError:
+			print "Creation of the directory %s falied\n" % path
+		else:
+			pass
+			# print "Successfully created the directory %s" % shelf1_path
+
 		# generate hypothesis (including the true pose) for each objects
 		# 8 objects includes baseball as the target object
 		##########################################################################
 		Objects = dict()
 		# meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 		Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-			"target", 2, [0.21, 0.2, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
+			"target", 2, [0.04, 0.33, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
 														[0.0, 0.0, 0.0], [0.05, 0.05], nHypo]
-		# Objects[1] = [1, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
-		# 	"lightbulb", "normal", 1.5, [-0.12, 0.25, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
-		# 											[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
-		# Objects[2] = [2, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
-		# 	"glue", "normal", 1.5, [0.02, 0.44, 0.13+middleflatPosition[2]+flat_dim[2]/2], 
-		# 								[math.pi / 2, 0.0, 25*math.pi/180], [0.07, 0.07, 0.5], nHypo]
-		# Objects[3] = [3, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
-		# 	"tissueBox", "normal", 1.5, [-0.2, -0.31, 0.1+middleflatPosition[2]+flat_dim[2]/2], 
-		# 										[0.0, 0.0, -math.pi/1.2], [0.03, 0.03, 0.24], nHypo]
-		# Objects[4] = [4, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
-		# 	"normal", 2, [0.1, 0.24, 0.05+shelfbase_dim[2]], 
-		# 									[math.pi/2, 0.0, math.pi/4.3], [0.03, 0.06, 0.01], nHypo]
-		# Objects[5] = [5, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
-		# 	"normal", 2, [-0.2, 0.36, 0.07+shelfbase_dim[2]], 
-		# 										[0.0, 0.0, -math.pi/5.2], [0.05, 0.04, 0.3], nHypo]
-		# Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
-		# 	"glucoseBottle", "normal", 1.5, [-0.23, -0.43, 0.1+shelfbase_dim[2]], 
-		# 									[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
-		# Objects[7] = [7, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
-		# 	"brush", "normal", 1, [0.07, -0.32, 0.02+shelfbase_dim[2]], 
-		# 									[0.0, 0.0, -math.pi / 3.1], [0.028, 0.02, 0.2], nHypo]
+		Objects[1] = [1, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
+			"lightbulb", "normal", 1.5, [-0.12, 0.25, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
+													[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
+		Objects[2] = [2, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
+			"glue", "normal", 1.5, [-0.05, 0.51, 0.13+middleflatPosition[2]+flat_dim[2]/2], 
+										[math.pi / 2, 0.0, 25*math.pi/180], [0.07, 0.07, 0.5], nHypo]
+		Objects[3] = [3, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
+			"tissueBox", "normal", 1.5, [-0.2, -0.31, 0.1+middleflatPosition[2]+flat_dim[2]/2], 
+												[0.0, 0.0, -math.pi/1.2], [0.03, 0.03, 0.24], nHypo]
+		Objects[4] = [4, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
+			"normal", 2, [0.1, 0.24, 0.05+shelfbase_dim[2]], 
+											[math.pi/2, 0.0, math.pi/4.3], [0.03, 0.06, 0.01], nHypo]
+		Objects[5] = [5, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
+			"normal", 2, [-0.2, 0.36, 0.07+shelfbase_dim[2]], 
+												[0.0, 0.0, -math.pi/5.2], [0.05, 0.04, 0.3], nHypo]
+		Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
+			"glucoseBottle", "normal", 1.5, [-0.23, -0.43, 0.1+shelfbase_dim[2]], 
+											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
+		Objects[7] = [7, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
+			"brush", "normal", 1, [0.07, -0.32, 0.02+shelfbase_dim[2]], 
+											[0.0, 0.0, -math.pi / 3.1], [0.028, 0.02, 0.2], nHypo]
 		# pick goal offset
-		goalPos_offset = [-0.09, 0.09, 0.05]
+		goalPos_offset = [0.0, 0.0, 0.13]
+		goalEuler = [0.0, 0.0, 0.0]
 
 	elif sys.argv[2] == "2":
+		path = shelf_path + "/scenario2"
+		try:
+			os.mkdir(path)
+		except OSError:
+			print "Creation of the directory %s falied\n" % path
+		else:
+			pass
+			# print "Successfully created the directory %s" % shelf2_path
+
 		# generate hypothesis (including the true pose) for each objects
 		# 11 objects includes baseball as the target object
 		##########################################################################
 		Objects = dict()
-		# meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
+		# objectIndex, meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 		Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
 			"target", 2, [-0.08, 0.3, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
 														[0.0, 0.0, 0.0], [0.05, 0.05], nHypo]
@@ -302,22 +377,23 @@ if sys.argv[1] == "shelf":
 		goalPos_offset = [-0.0, 0.0, 0.12]
 
 
-
+f_label = open(path + "/"+ sys.argv[1] + sys.argv[2] + "_labelWeights.txt", "w")
 ### Collect meshes for all the objects ###
 meshDict = dict()
 for i in xrange(len(Objects)):
-	meshDict[i] = utils.createMesh(Objects[i][0], Objects[i][1], Objects[i][2], 
+	meshDict[i] = utils.createMesh(f_label, Objects[i][0], Objects[i][1], Objects[i][2], 
 		Objects[i][3], Objects[i][4], Objects[i][5], Objects[i][6], Objects[i][7], Objects[i][8])
-
-
+f_label.close()
+'''
 ##############start sampling##################
 f = open("kuka_"+ sys.argv[1] + sys.argv[2] + "_samples.txt", "w")
 
 nodes = []
 
-nsamples = 20
+nsamples = 5000
 # f.write(str(nsamples)+"\n")
 temp_counter = 0
+
 
 while temp_counter < nsamples:
 	# sample a configuration based on the joint limit
@@ -334,7 +410,6 @@ while temp_counter < nsamples:
 	p.stepSimulation()
 	#time.sleep(0.05)
 	isCollision = utils.collisionCheck_staticG(kukaID, static_geometries)
-	time.sleep(4)
 	if isCollision == False:
 		nodes.append(ikSolution)
 		## write it into a roadmap file
@@ -344,12 +419,14 @@ while temp_counter < nsamples:
 		temp_counter += 1
 
 
-'''
 ############ connect neighbors to build roadmaps #############
 connectivity = np.zeros((nsamples, nsamples))
 tree = spatial.KDTree(nodes)
 neighbors_const = 2 * math.e * (1 + 1/len(home_configuration))
 num_neighbors = int(neighbors_const * math.log(nsamples))
+if num_neighbors >= nsamples:
+	num_neighbors = nsamples -1 
+print "num_neighbors: " + str(num_neighbors)
 
 f1 = open("kuka_"+ sys.argv[1] + sys.argv[2] + "_roadmap.txt", "w")
 nedge = 0
@@ -382,13 +459,13 @@ for i in xrange(len(nodes)):
 			# update the counting for neighbors
 			neighbors_counts[i] += 1
 			neighbors_counts[knn[1][j]] += 1
-	print "finish connecting neighbors for node " + str(i)
-# print "number of neighbors for each node: " + str(num_neighbors)
+	if i % 100 == 0:
+		print "finish connecting neighbors for node " + str(i)
 # print neighbors_counts
+print "finish all the neighbors"
 ######################################################################
-'''
 
-'''
+
 ###### query the start node and goal nodes ######
 q_start = home_configuration
 nodes.append(q_start)
@@ -399,7 +476,7 @@ temp_counter += 1
 ## connect the start to the roadmap
 tree = spatial.KDTree(nodes)
 queryNode = nodes[temp_counter-1]
-knn = tree.query(queryNode, k=num_neighbors, p=2)
+knn = tree.query(queryNode, k=(nsamples-10), p=2)
 # for each neighbor
 for j in xrange(len(knn[1])):
 	if knn[1][j] == (temp_counter-1):
@@ -417,41 +494,50 @@ for j in xrange(len(knn[1])):
 			print "successfully connecting the start to the roadmap\n"
 			break # we just need to connect it, not necessary
 
-
 # goal nodes
+## put the kuka arm back to home configuration for next IK solution
+for i in range(1,8):
+	result = p.resetJointState(kukaID,i,home_configuration[i-1])
 goal_pose_pos = []
 for i in xrange(len(goalPos_offset)):
 	# The goal object always has the index zero
 	goal_pose_pos.append(Objects[0][5][i] + goalPos_offset[i])
+goal_pose_quat = utils.euler_to_quaternion(goalEuler[0], goalEuler[1], goalEuler[2])
 
-# goalCollision = True
-# while goalCollision:
-# 	## put the kuka arm back to home configuration for next IK solution
-# 	for i in range(1,8):
-# 		result = p.resetJointState(kukaID,i,home_configuration[i-1])	
-# 	q_goal = p.calculateInverseKinematics(kukaID, kuka_ee_idx, 
-# 										goal_pose_pos, ll, ul, jr, rp)
-# 	for j in range(1,8):
-# 		result = p.resetJointState(kukaID,j,q_goal[j-1])
-# 	p.stepSimulation()
-# 	# check collision for static geometry
-# 	goalCollision = utils.collisionCheck_staticG(kukaID, static_geometries)
-# 	print "collision for the goal? " + " " + str(goalCollision) 
-
-q_goal = p.calculateInverseKinematics(kukaID, kuka_ee_idx, 
-									goal_pose_pos, ll, ul, jr, rp)
-
+goalCollision = True
+while goalCollision:
+	q_goal = p.calculateInverseKinematics(kukaID, kuka_ee_idx, goal_pose_pos, 
+													goal_pose_quat, ll, ul, jr)
+	for j in range(1,8):
+		result = p.resetJointState(kukaID,j,q_goal[j-1])
+	p.stepSimulation()
+	# check collision for both static geometry & objects
+	isCollision1 = utils.collisionCheck_staticG(kukaID, static_geometries)
+	if isCollision1:
+		pass
+	else:
+		isCollision2 = utils.collisionCheck_objects(kukaID, meshDict)
+		if not isCollision2:
+			goalCollision = False
+	# if goalCollision:
+	# 	## put the kuka arm back to home configuration for next IK solution
+	# 	for i in range(1,8):
+	# 		result = p.resetJointState(kukaID,i,home_configuration[i-1])
+print "collision for the goal? " + " " + str(goalCollision)
+print "goal state: " + str(q_goal)
 ## pass goal collision checker
 nodes.append(q_goal)
+
 f.write(str(temp_counter) + " " + str(q_goal[0]) + " " + str(q_goal[1]) + " " \
 	+ str(q_goal[2]) + " " + str(q_goal[3]) + " " + str(q_goal[4]) + " " + \
 	str(q_goal[5]) + " " + str(q_goal[6]))
 temp_counter += 1
+f.close()
 
 ## connect the goal to the roadmap
 tree = spatial.KDTree(nodes)
 queryNode = nodes[temp_counter-1]
-knn = tree.query(queryNode, k=num_neighbors, p=2)
+knn = tree.query(queryNode, k=(nsamples-10), p=2)
 # for each neighbor
 for j in xrange(len(knn[1])):
 	if knn[1][j] == (temp_counter - 1):
@@ -468,21 +554,20 @@ for j in xrange(len(knn[1])):
 				+ str(knn[0][j]))
 			print "successfully connecting the goal to the roadmap\n"
 			break # we just need to connect it, not necessary
+		else:
+			print "The edge is not valid..." + str(j)
 
-
+f1.close()
 print (len(nodes))
 '''
 
-
 '''
 ## execute the trajectory in the scene without the objects
-traj_file = "kuka_table3_traj.txt"
+traj_file = "kuka_shelf1_traj.txt"
 utils.executeTrajectory(traj_file, kukaID)
 '''
 
 time.sleep(10000)
-
-
 
 
 

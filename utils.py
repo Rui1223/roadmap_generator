@@ -18,6 +18,7 @@ class Mesh:
 	def setProb(self, prob):
 		self.prob = prob
 
+
 ## roll (X), pitch (Y), yaw(Z)
 ## This function come from online wiki link
 ## https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
@@ -53,8 +54,10 @@ def comp_prob(pos, temp_pos, angles, temp_zangle):
 # represented as gaussian distribution, where the mean is the true pose and
 # the variance is where the uncertainty comes from.
 # Each object has different uncertainty level. (But with the same dimension)
-def createMesh(objIndx, meshfile, meshType, objectRole, scale, 
+def createMesh(f, objIndx, meshfile, meshType, objectRole, scale, 
 								pos, angles, uncertainty, nhypo=3):
+	# starting label index for the current obs
+	labelIdx = nhypo * objIndx
 	# with the mesh file and scale 
 	# create the collision and visual shape of the object
 	_c = p.createCollisionShape(shapeType=p.GEOM_MESH, 
@@ -92,6 +95,7 @@ def createMesh(objIndx, meshfile, meshType, objectRole, scale,
 						basePosition=temp_pos,baseOrientation=temp_quat)
 		meshes.append(Mesh(_m, meshType, objIndx, h, temp_pos, temp_quat, temp_prob))
 
+
 	# last step: normalize the probability
 	temp_probs = []
 	for mesh in meshes:
@@ -99,6 +103,8 @@ def createMesh(objIndx, meshfile, meshType, objectRole, scale,
 	temp_sum = sum(temp_probs)
 	for i in xrange(0, len(meshes)):
 		meshes[i].setProb(round(temp_probs[i]/temp_sum, 2))
+		f.write( str(labelIdx) + " " + str(meshes[i].objIndx) + " " + str(meshes[i].prob) + "\n" )
+		labelIdx += 1
 
 	# print the meshes for the object please
 	printPoses(meshes)
@@ -189,14 +195,6 @@ def local_move(n1, n2, kukaID):
 		math.fabs(n1[3]-n2[3]), math.fabs(n1[4]-n2[4]), 
 		math.fabs(n1[5]-n2[5]), math.fabs(n1[6]-n2[6]))) / step)
 	for i in xrange(1,nseg+1):
-		# interm_j1 = min(n1[0], n2[0]) + math.fabs(n1[0]-n2[0])/nseg * i
-		# interm_j2 = min(n1[1], n2[1]) + math.fabs(n1[1]-n2[1])/nseg * i
-		# interm_j3 = min(n1[2], n2[2]) + math.fabs(n1[2]-n2[2])/nseg * i
-		# interm_j4 = min(n1[3], n2[3]) + math.fabs(n1[3]-n2[3])/nseg * i
-		# interm_j5 = min(n1[4], n2[4]) + math.fabs(n1[4]-n2[4])/nseg * i
-		# interm_j6 = min(n1[5], n2[5]) + math.fabs(n1[5]-n2[5])/nseg * i
-		# interm_j7 = min(n1[6], n2[6]) + math.fabs(n1[6]-n2[6])/nseg * i
-
 		interm_j1 = n1[0] + (n2[0]-n1[0]) / nseg * i
 		interm_j2 = n1[1] + (n2[1]-n1[1]) / nseg * i
 		interm_j3 = n1[2] + (n2[2]-n1[2]) / nseg * i
