@@ -6,11 +6,11 @@ import math
 import time
 
 class Mesh:
-	def __init__(self, m, meshType, objIndx, HypoIndx, pos, quat, prob):
+	def __init__(self, m, meshType, objIndx, hypoIndx, pos, quat, prob):
 		self.m = m
 		self.meshType = meshType
 		self.objIndx = objIndx
-		self.HypoIndx = HypoIndx
+		self.hypoIndx = hypoIndx
 		self.pos = pos
 		self.quat = quat
 		self.prob = prob
@@ -54,10 +54,9 @@ def comp_prob(pos, temp_pos, angles, temp_zangle):
 # represented as gaussian distribution, where the mean is the true pose and
 # the variance is where the uncertainty comes from.
 # Each object has different uncertainty level. (But with the same dimension)
-def createMesh(f, objIndx, meshfile, meshType, objectRole, scale, 
+def createMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale, 
 								pos, angles, uncertainty, nhypo=3):
 	# starting label index for the current obs
-	labelIdx = nhypo * objIndx
 	# with the mesh file and scale 
 	# create the collision and visual shape of the object
 	_c = p.createCollisionShape(shapeType=p.GEOM_MESH, 
@@ -71,7 +70,7 @@ def createMesh(f, objIndx, meshfile, meshType, objectRole, scale,
 	# first put the true pose of the objects into the meshes
 	_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
 						basePosition=pos,baseOrientation=quat)
-	meshes.append(Mesh(_m, meshType, objIndx, 0, pos, quat, 1))
+	meshes.append(Mesh(_m, meshType, objIndx, labelIdx, pos, quat, 1))
 
 	# for each hypothesis other than the true pose
 	for h in xrange(1, nhypo):
@@ -93,7 +92,7 @@ def createMesh(f, objIndx, meshfile, meshType, objectRole, scale,
 		# create the mesh and save it into meshes
 		_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
 						basePosition=temp_pos,baseOrientation=temp_quat)
-		meshes.append(Mesh(_m, meshType, objIndx, h, temp_pos, temp_quat, temp_prob))
+		meshes.append(Mesh(_m, meshType, objIndx, labelIdx+h, temp_pos, temp_quat, temp_prob))
 
 
 	# last step: normalize the probability
@@ -116,33 +115,35 @@ def printPoses(meshes):
 	print "----------------------------------\n"
 	print "Poses for object " + str(meshes[0].objIndx) + ": " + meshes[0].meshType + "\n"
 	for mesh in meshes:
-		print str(mesh.pos) + " " +str(mesh.quat) + " " + str(mesh.prob) + "\n"
+		print "Label " + str(mesh.hypoIndx) + " " + str(mesh.pos) + \
+							" " +str(mesh.quat) + " " + str(mesh.prob) + "\n"
 	print "----------------------------------\n"
 
 
 def collisionCheck_staticG(kukaID, static_geometries):
 	isCollision = False
+	# counter = 1
 	# loop through all static geometries
 	for g in static_geometries:
-		contacts = p.getContactPoints(kukaID, g)
+		contacts = p.getContactPoints(g)
 		if len(contacts) != 0:
 			isCollision = True
+			# if counter == 1:
+			# 	print "Self Collision with Kuka!!"
 			# print "static collision with " + str(g)
 			break
+		# counter += 1
 	# print "static collision? " + "\t" + str(isCollision)
 	return isCollision
 
-def collisionCheck_objects(kukaID, meshDict):
+def collisionCheck_hypos(kukaID, meshSet):
 	isCollision = False
-	# loop through meshes of each object
-	for i in xrange(len(meshDict)):
-		for m in meshDict[i]:
-			contacts = p.getContactPoints(kukaID, m.m)
-			if len(contacts) != 0:
-				isCollision = True
-				# print "object collision? " + "\t" + m.meshType
-				break
-		if isCollision:
+	# loop through meshes of each hypothesis
+	for m in meshSet:
+		contacts = p.getContactPoints(m.m)
+		if len(contacts) != 0:
+			isCollision = True
+			# print "object collision? " + "\t" + m.meshType
 			break
 	# print "__________________________________________"
 	return isCollision
@@ -175,6 +176,40 @@ def checkEdgeValidity(n1, n2, kukaID, static_geometries):
 
 	return isEdgeValid
 
+def label_the_edge(n1, n2, kukaID, meshSet):
+	temp_labels = []
+	labels_status = [False] * len(meshSet)
+	step = 5 * math.pi / 180
+	nseg = int(math.ceil(max(math.fabs(n1[0]-n2[0]), math.fabs(n1[1]-n2[1]), 
+			math.fabs(n1[2]-n2[2]), math.fabs(n1[3]-n2[3]), math.fabs(n1[4]-n2[4]), 
+			math.fabs(n1[5]-n2[5]), math.fabs(n1[6]-n2[6]))) / step)
+	for i in xrange(0, nseg+1):
+		interm_j1 = n1[0] + (n2[0]-n1[0]) / nseg * i
+		interm_j2 = n1[1] + (n2[1]-n1[1]) / nseg * i
+		interm_j3 = n1[2] + (n2[2]-n1[2]) / nseg * i
+		interm_j4 = n1[3] + (n2[3]-n1[3]) / nseg * i
+		interm_j5 = n1[4] + (n2[4]-n1[4]) / nseg * i
+		interm_j6 = n1[5] + (n2[5]-n1[5]) / nseg * i
+		interm_j7 = n1[6] + (n2[6]-n1[6]) / nseg * i
+		intermNode = [interm_j1, interm_j2, interm_j3, interm_j4, 
+											interm_j5, interm_j6, interm_j7]
+		for j in range(1,8):
+			result = p.resetJointState(kukaID,j,intermNode[j-1])
+		p.stepSimulation()
+		#time.sleep(0.05)
+		for m in meshSet:
+			## Before you do collision checker
+			## check if that hypo has been checked before
+			if labels_status[m.hypoIndx] == False:
+				contacts = p.getContactPoints(kukaID, m.m)
+				if len(contacts) != 0:
+					# print "Collision with " + str(m.meshType) + " on hypo " + str(m.hypoIndx)
+					temp_labels.append(m.hypoIndx)
+					labels_status[m.hypoIndx] = True
+	# print temp_labels
+	# print "*********************"
+	return temp_labels
+
 def executeTrajectory(traj_file, kukaID):
 	traj = []
 	f = open(traj_file)
@@ -204,12 +239,12 @@ def local_move(n1, n2, kukaID):
 		interm_j7 = n1[6] + (n2[6]-n1[6]) / nseg * i
 		intermNode = [interm_j1, interm_j2, interm_j3, interm_j4, 
 											interm_j5, interm_j6, interm_j7]
-		if i == 1:
-			print "begin state +1: " + str(intermNode) 
-		if i == nseg-1:
-			print "end state -1: " + str(intermNode)
-		if (i == nseg):
-			print "end state: " + str(intermNode)
+		# if i == 1:
+		# 	print "begin state +1: " + str(intermNode) 
+		# if i == nseg-1:
+		# 	print "end state -1: " + str(intermNode)
+		# if (i == nseg):
+		# 	print "end state: " + str(intermNode)
 		for j in range(1,8):
 			result = p.resetJointState(kukaID,j,intermNode[j-1])
 		p.stepSimulation()
