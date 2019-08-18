@@ -6,7 +6,7 @@ import math
 import time
 
 class Mesh:
-	def __init__(self, m, meshType, objIndx, hypoIndx, pos, quat, prob):
+	def __init__(self, m, meshType, objIndx, hypoIndx, pos, quat, prob, objectRole):
 		self.m = m
 		self.meshType = meshType
 		self.objIndx = objIndx
@@ -14,6 +14,7 @@ class Mesh:
 		self.pos = pos
 		self.quat = quat
 		self.prob = prob
+		self.role = objectRole
 
 	def setProb(self, prob):
 		self.prob = prob
@@ -70,7 +71,7 @@ def createMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale,
 	# first put the true pose of the objects into the meshes
 	_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
 						basePosition=pos,baseOrientation=quat)
-	meshes.append(Mesh(_m, meshType, objIndx, labelIdx, pos, quat, 1))
+	meshes.append(Mesh(_m, meshType, objIndx, labelIdx, pos, quat, 1, objectRole))
 
 	# for each hypothesis other than the true pose
 	for h in xrange(1, nhypo):
@@ -92,7 +93,7 @@ def createMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale,
 		# create the mesh and save it into meshes
 		_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
 						basePosition=temp_pos,baseOrientation=temp_quat)
-		meshes.append(Mesh(_m, meshType, objIndx, labelIdx+h, temp_pos, temp_quat, temp_prob))
+		meshes.append(Mesh(_m, meshType, objIndx, labelIdx+h, temp_pos, temp_quat, temp_prob, objectRole))
 
 
 	# last step: normalize the probability
@@ -125,7 +126,7 @@ def collisionCheck_staticG(kukaID, static_geometries):
 	# counter = 1
 	# loop through all static geometries
 	for g in static_geometries:
-		contacts = p.getContactPoints(g)
+		contacts = p.getContactPoints(kukaID, g)
 		if len(contacts) != 0:
 			isCollision = True
 			# if counter == 1:
@@ -140,16 +141,17 @@ def collisionCheck_hypos(kukaID, meshSet):
 	isCollision = False
 	# loop through meshes of each hypothesis
 	for m in meshSet:
-		contacts = p.getContactPoints(m.m)
-		if len(contacts) != 0:
-			isCollision = True
-			# print "object collision? " + "\t" + m.meshType
-			break
+		if m.role != "invisible":
+			contacts = p.getContactPoints(kukaID, m.m)
+			if len(contacts) != 0:
+				isCollision = True
+				# print "object collision? " + "\t" + m.meshType
+				break
 	# print "__________________________________________"
 	return isCollision
 
 def checkEdgeValidity(n1, n2, kukaID, static_geometries):
-	step = 5 * math.pi / 180
+	step = 3 * math.pi / 180
 	nseg = int(math.ceil(max(math.fabs(n1[0]-n2[0]), math.fabs(n1[1]-n2[1]), 
 			math.fabs(n1[2]-n2[2]), math.fabs(n1[3]-n2[3]), math.fabs(n1[4]-n2[4]), 
 			math.fabs(n1[5]-n2[5]), math.fabs(n1[6]-n2[6]))) / step)
@@ -198,14 +200,15 @@ def label_the_edge(n1, n2, kukaID, meshSet):
 		p.stepSimulation()
 		#time.sleep(0.05)
 		for m in meshSet:
-			## Before you do collision checker
-			## check if that hypo has been checked before
-			if labels_status[m.hypoIndx] == False:
-				contacts = p.getContactPoints(kukaID, m.m)
-				if len(contacts) != 0:
-					# print "Collision with " + str(m.meshType) + " on hypo " + str(m.hypoIndx)
-					temp_labels.append(m.hypoIndx)
-					labels_status[m.hypoIndx] = True
+			if m.role != "invisible":
+				## Before you do collision checker
+				## check if that hypo has been checked before
+				if labels_status[m.hypoIndx] == False:
+					contacts = p.getContactPoints(kukaID, m.m)
+					if len(contacts) != 0:
+						# print "Collision with " + str(m.meshType) + " on hypo " + str(m.hypoIndx)
+						temp_labels.append(m.hypoIndx)
+						labels_status[m.hypoIndx] = True
 	# print temp_labels
 	# print "*********************"
 	return temp_labels

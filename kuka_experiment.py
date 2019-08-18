@@ -9,6 +9,7 @@ import math
 import random
 import sys
 import os
+import subprocess
 
 from scipy import spatial
 import cPickle as pickle
@@ -48,16 +49,13 @@ if sys.argv[1] == "table":
 		print "Creation of the directory %s falied\n" % table_path
 	else:
 		pass
-		# print "Successfully created the directory %s" % table_path
 
 	print "---------Enter to table scene!---------"
 	home_configuration = [0,0,0,-np.pi/2,0,np.pi/2,0]
 	for i in range(1,8):
 		result = p.resetJointState(kukaID,i,home_configuration[i-1])
-	#reset the base of Kuka
-	p.resetBasePositionAndOrientation(kukaID, [-0.7, 0, 0], [0, 0, 0, 1])
 	# create the static geometries - table
-	table_dim = np.array([0.7, 1.3, 0.45])
+	table_dim = np.array([0.7, 1.3, 0.35])
 	tablePosition=[0, 0, table_dim[2]/2]
 	table_c = p.createCollisionShape(shapeType=p.GEOM_BOX,
 							halfExtents=table_dim/2)
@@ -66,6 +64,10 @@ if sys.argv[1] == "table":
 	tableM = p.createMultiBody(baseCollisionShapeIndex=table_c,
 					baseVisualShapeIndex=table_v,basePosition=tablePosition)
 	static_geometries.append(tableM)
+	#reset the base of Kuka
+	kukaBasePosition = [-table_dim[0]/2-0.2, 0, 0]
+	kukaBaseOrientation = [0, 0, 0, 1]
+	p.resetBasePositionAndOrientation(kukaID, kukaBasePosition, kukaBaseOrientation)
 ######################################################################	
 	if sys.argv[2] == "1":
 		path = table_path + "/scenario1"
@@ -75,7 +77,6 @@ if sys.argv[1] == "table":
 			print "Creation of the directory %s falied\n" % path
 		else:
 			pass
-			# print "Successfully created the directory %s" % table1_path
 
 		# generate hypothesis (including the true pose) for each objects
 		# 5 objects includes baseball as the target object
@@ -88,7 +89,7 @@ if sys.argv[1] == "table":
 		"crayola", "normal", 2, [0.15, 0.0, 0.1+table_dim[2]], 
 												[math.pi/2, 0.0, 0.0], [0.04, 0.03, 0.18], nHypo]
 		Objects[2] = [2, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
-			"normal", 2, [-0.15, -0.29, 0.2+table_dim[2]], 
+			"normal", 2, [-0.15, -0.33, 0.2+table_dim[2]], 
 												[math.pi/2, 0.0, 0.0], [0.05, 0.04, 0.3], nHypo]
 		Objects[3] = [3, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
 		"tissueBox", "normal", 1.5, [0.05, -0.42, 0.1+table_dim[2]], 
@@ -97,7 +98,15 @@ if sys.argv[1] == "table":
 			"normal", 2, [-0.12, 0.13, 0.05+table_dim[2]], 
 										[math.pi/2, 0.0, math.pi/6.7], [0.03, 0.06, 0.01], nHypo]
 		# pick goal offset												
-		goalPos_offset = [-0.03, 0.0, 0.12]
+		goalPos_offset = [0.0, 0.0, 0.15]
+		goalEuler = [0.0, 0.0, 0.0] ## tabletop picking
+		x_ll = kukaBasePosition[0] - 0.2
+		x_ul = tablePosition[0] + table_dim[0]/2
+		y_ll = -table_dim[1]/2
+		y_ul = table_dim[1]/2
+		z_ll = table_dim[2]
+		z_ul = table_dim[2]+0.7
+
 
 	elif sys.argv[2] == "2":
 		path = table_path + "/scenario2"
@@ -107,7 +116,6 @@ if sys.argv[1] == "table":
 			print "Creation of the directory %s falied\n" % path
 		else:
 			pass
-			# print "Successfully created the directory %s" % table2_path
 
 		# generate hypothesis (including the true pose) for each objects
 		# 7 objects includes baseball as the target object
@@ -139,6 +147,13 @@ if sys.argv[1] == "table":
 											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
 		# pick goal offset
 		goalPos_offset = [-0.03, 0.0, 0.127]
+		goalEuler = [0.0, 0.0, 0.0] ## tabletop picking
+		x_ll = kukaBasePosition[0] - 0.2
+		x_ul = tablePosition[0] + table_dim[0]/2
+		y_ll = -table_dim[1]/2
+		y_ul = table_dim[1]/2
+		z_ll = table_dim[2]
+		z_ul = table_dim[2]+0.7
 
 	elif sys.argv[2] == "3":
 		path = table_path + "/scenario3"
@@ -148,7 +163,6 @@ if sys.argv[1] == "table":
 			print "Creation of the directory %s falied\n" % path
 		else:
 			pass
-			# print "Successfully created the directory %s" % table3_path
 
 		# generate hypothesis (including the true pose) for each objects
 		# 10 objects includes baseball as the target object
@@ -168,7 +182,7 @@ if sys.argv[1] == "table":
 									[0.0, math.pi/2, -math.pi/8.8], [0.05, 0.04, 0.25], nHypo]
 		Objects[4] = [4, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
 				"glue", "invisible", 1.5, [0.03, 0.38, 0.11+table_dim[2]], 
-									[math.pi / 2, 0.0, 67*math.pi/180], [0.07, 0.07, 0.5], nHypo]
+									[math.pi / 2, 0.0, 67*math.pi/180], [0.07, 0.07, 0.5], 1]
 		# Objects[5] = [5, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", 
 		# 		"coffeeJar", "normal", 2, [-0.2, -0.09, 0.12+table_dim[2]], 
 		# 								[math.pi/2, 0.0, -math.pi/3.9], [0.026, 0.01, 0.24], nHypo]
@@ -189,6 +203,13 @@ if sys.argv[1] == "table":
 											[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
 		# pick goal offset
 		goalPos_offset = [-0.03, 0.0, 0.14]
+		goalEuler = [0.0, 0.0, 0.0] ## tabletop picking
+		x_ll = kukaBasePosition[0] - 0.2
+		x_ul = tablePosition[0] + table_dim[0]/2
+		y_ll = -table_dim[1]/2
+		y_ul = table_dim[1]/2
+		z_ll = table_dim[2]
+		z_ul = table_dim[2]+0.7
 ###############################################################################################
 
 if sys.argv[1] == "shelf":
@@ -199,7 +220,6 @@ if sys.argv[1] == "shelf":
 		print "Creation of the directory %s falied\n" % shelf_path
 	else:
 		pass
-		# print "Successfully created the directory %s" % shelf_path
 
 	print "---------Enter to shelf scene!---------"
 	home_configuration = [0,0,0,0,0,0,0]
@@ -214,12 +234,6 @@ if sys.argv[1] == "shelf":
 					baseVisualShapeIndex=standingBase_v,basePosition=standingBasePosition)
 	static_geometries.append(standingBaseM)
 	print "standing base: " + str(standingBaseM)
-	#reset the base of Kuka
-	kukaBasePosition = [standingBasePosition[0], standingBasePosition[1], standingBase_dim[2]+0.005]
-	kukaBaseOrientation = utils.euler_to_quaternion(-math.pi/2, math.pi, 0.0)
-	# kukaBaseOrientation = utils.euler_to_quaternion(math.pi/2, math.pi, 0.0)
-	# kukaBaseOrientation = utils.euler_to_quaternion(0.0, 0.0, 0.0)
-	p.resetBasePositionAndOrientation(kukaID, kukaBasePosition, kukaBaseOrientation)
 	# create the static geometries - shelf
 	# shelfbase
 	shelfbase_dim = np.array([0.7, 1.3, 0.3])
@@ -249,11 +263,11 @@ if sys.argv[1] == "shelf":
 	static_geometries.append(rightflankM)
 	print "right flank: " + str(rightflankM)
 	#middleflank
-	# middleflankPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]/2]
-	# middleflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
-	# 				baseVisualShapeIndex=flank_v,basePosition=middleflankPosition)
-	# static_geometries.append(middleflankM)
-	# print "middle flank: " + str(middleflankM)
+	middleflankPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]/2]
+	middleflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
+					baseVisualShapeIndex=flank_v,basePosition=middleflankPosition)
+	static_geometries.append(middleflankM)
+	print "middle flank: " + str(middleflankM)
 	#the shape and visual of the flat
 	flat_dim = np.array([shelfbase_dim[0], shelfbase_dim[1], 0.06])
 	flat_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=flat_dim/2)
@@ -266,21 +280,27 @@ if sys.argv[1] == "shelf":
 	static_geometries.append(middleflatM)	
 	print "middle flat: " + str(middleflatM)
 	#topflat
-	# topflatPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]+flat_dim[2]/2]
-	# topflatM = p.createMultiBody(baseCollisionShapeIndex=flat_c,
-	# 				baseVisualShapeIndex=flat_v,basePosition=topflatPosition)
-	# static_geometries.append(topflatM)
-	# print "top flat: " + str(topflatM)
+	topflatPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]+flat_dim[2]/2]
+	topflatM = p.createMultiBody(baseCollisionShapeIndex=flat_c,
+					baseVisualShapeIndex=flat_v,basePosition=topflatPosition)
+	static_geometries.append(topflatM)
+	print "top flat: " + str(topflatM)
 	#back
-	# shelfback_dim = np.array([0.02, shelfbase_dim[1], flank_dim[2]+flat_dim[2]])
-	# shelfback_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=shelfback_dim/2)
-	# shelfback_v = p.createVisualShape(shapeType=p.GEOM_BOX,
-	# 				halfExtents=shelfback_dim/2, rgbaColor=[0.63, 0.32, 0.18, 1])
-	# shelfbackPosition = [shelfbase_dim[0]/2-shelfback_dim[0]/2, 0.0, shelfbase_dim[2]+shelfback_dim[2]/2]
-	# shelfbackM = p.createMultiBody(baseCollisionShapeIndex=shelfback_c,
-	# 				baseVisualShapeIndex=shelfback_v,basePosition=shelfbackPosition)
-	# static_geometries.append(shelfbackM)
-	# print "shelf back: " + str(shelfbackM)
+	shelfback_dim = np.array([0.02, shelfbase_dim[1], flank_dim[2]+flat_dim[2]])
+	shelfback_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=shelfback_dim/2)
+	shelfback_v = p.createVisualShape(shapeType=p.GEOM_BOX,
+					halfExtents=shelfback_dim/2, rgbaColor=[0.63, 0.32, 0.18, 1])
+	shelfbackPosition = [shelfbase_dim[0]/2-shelfback_dim[0]/2, 0.0, shelfbase_dim[2]+shelfback_dim[2]/2]
+	shelfbackM = p.createMultiBody(baseCollisionShapeIndex=shelfback_c,
+					baseVisualShapeIndex=shelfback_v,basePosition=shelfbackPosition)
+	static_geometries.append(shelfbackM)
+	print "shelf back: " + str(shelfbackM)
+	#reset the base of Kuka
+	kukaBasePosition = [standingBasePosition[0], standingBasePosition[1], standingBase_dim[2]+0.005]
+	kukaBaseOrientation = utils.euler_to_quaternion(-math.pi/2, math.pi, 0.0)
+	# kukaBaseOrientation = utils.euler_to_quaternion(math.pi/2, math.pi, 0.0)
+	# kukaBaseOrientation = utils.euler_to_quaternion(0.0, 0.0, 0.0)
+	p.resetBasePositionAndOrientation(kukaID, kukaBasePosition, kukaBaseOrientation)
 ######################################################################
 	if sys.argv[2] == "1":
 		path = shelf_path + "/scenario1"
@@ -290,19 +310,18 @@ if sys.argv[1] == "shelf":
 			print "Creation of the directory %s falied\n" % path
 		else:
 			pass
-			# print "Successfully created the directory %s" % shelf1_path
 
 		# generate hypothesis (including the true pose) for each objects
 		# 8 objects includes baseball as the target object
 		##########################################################################
 		Objects = dict()
 		# meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
-		Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-			"target", 2, [0.04, 0.33, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
-														[0.0, 0.0, 0.0], [0.05, 0.05], 1]
+		Objects[0] = [0, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
+			"target", 1.7, [0.04, 0.33, 0.17+middleflatPosition[2]+flat_dim[2]/2], 
+												[math.pi/2, 0.0, 0.0], [0.05, 0.04, 0.3], 1]
 		Objects[1] = [1, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
-			"lightbulb", "normal", 1.5, [-0.12, 0.25, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
-													[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
+			"lightbulb", "normal", 1.5, [-0.12, 0.21, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
+													[math.pi/2, 0.0, math.pi/5.7], [0.032, 0.035, 0.06], nHypo]
 		Objects[2] = [2, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
 			"glue", "normal", 1.5, [-0.05, 0.51, 0.09+middleflatPosition[2]+flat_dim[2]/2], 
 										[math.pi / 2, 0.0, 25*math.pi/180], [0.07, 0.07, 0.5], nHypo]
@@ -312,9 +331,9 @@ if sys.argv[1] == "shelf":
 		Objects[4] = [4, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
 			"normal", 2, [0.1, 0.24, 0.05+shelfbase_dim[2]], 
 											[math.pi/2, 0.0, math.pi/4.3], [0.03, 0.06, 0.01], nHypo]
-		Objects[5] = [5, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
+		Objects[5] = [5, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
 			"normal", 2, [-0.2, 0.36, 0.07+shelfbase_dim[2]], 
-												[0.0, 0.0, -math.pi/5.2], [0.05, 0.04, 0.3], nHypo]
+														[0.0, 0.0, 0.0], [0.05, 0.05], nHypo]
 		Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
 			"glucoseBottle", "normal", 1.5, [-0.23, -0.43, 0.1+shelfbase_dim[2]], 
 											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
@@ -322,8 +341,14 @@ if sys.argv[1] == "shelf":
 			"brush", "normal", 1, [0.07, -0.32, 0.02+shelfbase_dim[2]], 
 											[0.0, 0.0, -math.pi / 3.1], [0.028, 0.02, 0.2], nHypo]
 		# pick goal offset
-		goalPos_offset = [0.0, 0.0, 0.13]
-		goalEuler = [0.0, 0.0, 0.0]
+		goalPos_offset = [-0.12, 0.0, 0.0]
+		goalEuler = [0.0, math.pi/2, 0.0]
+		x_ll = kukaBasePosition[0] - standingBase_dim[0] / 2 - 0.2
+		x_ul = shelfbackPosition[0] - shelfback_dim[0] / 2
+		y_ll = middleflankPosition[1] + flank_dim[1] / 2
+		y_ul = leftflankPosition[1] - flank_dim[1] / 2
+		z_ll = middleflatPosition[2] + flat_dim[2] / 2
+		z_ul = topflatPosition[2] - flat_dim[2] / 2
 
 	elif sys.argv[2] == "2":
 		path = shelf_path + "/scenario2"
@@ -333,22 +358,21 @@ if sys.argv[1] == "shelf":
 			print "Creation of the directory %s falied\n" % path
 		else:
 			pass
-			# print "Successfully created the directory %s" % shelf2_path
 
 		# generate hypothesis (including the true pose) for each objects
 		# 11 objects includes baseball as the target object
 		##########################################################################
 		Objects = dict()
 		# objectIndex, meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
-		Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-			"target", 2, [-0.08, 0.3, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
-														[0.0, 0.0, 0.0], [0.05, 0.05], 1]
+		Objects[0] = [0, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
+			"target", 1.7, [0.15, 0.45, 0.17+middleflatPosition[2]+flat_dim[2]/2], 
+									[math.pi/2, 0.0, -math.pi/5.2], [0.05, 0.04, 0.3], 1]
 		Objects[1] = [1, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
 			"normal", 2, [-0.13, 0.14, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
 									[math.pi/2, 0.0, math.pi/2.9], [0.03, 0.06, 0.01], nHypo]
-		Objects[2] = [2, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
-			"normal", 2, [-0.2, 0.45, 0.2+middleflatPosition[2]+flat_dim[2]/2], 
-									[math.pi/2, 0.0, -math.pi/5.2], [0.05, 0.04, 0.3], nHypo]
+		Objects[2] = [2, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
+			"normal", 2, [0.15, -0.46, 0.07+shelfbase_dim[2]], 
+														[0.0, 0.0, 0.0], [0.05, 0.05], nHypo]
 		Objects[3] = [3, "/mesh/ticonderoga_12_pencils/ticonderoga_12_pencils.obj", "pencils", 
 			"normal", 2, [0.05, -0.26, 0.01+middleflatPosition[2]+flat_dim[2]/2], 
 									[0.0, math.pi/2, -math.pi/3.9], [0.05, 0.04, 0.25], nHypo]
@@ -359,22 +383,32 @@ if sys.argv[1] == "shelf":
 			"coffeeJar", "normal", 2, [-0.2, -0.24, 0.12+shelfbase_dim[2]], 
 									[math.pi/2, 0.0, -math.pi/3.9], [0.026, 0.01, 0.24], nHypo]
 		Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
-			"glucoseBottle", "normal", 1.5, [0.15, -0.46, 0.1+shelfbase_dim[2]], 
+			"glucoseBottle", "normal", 1.5, [-0.08, 0.3, 0.1+middleflatPosition[2]+flat_dim[2]/2], 
 										[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
+		# Objects[7] = [7, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
+		# 	"crayola", "normal", 2, [-0.11, 0.43, 0.07+shelfbase_dim[2]], 
+		# 									[0.0, 0.0, math.pi/3.1], [0.04, 0.03, 0.18], nHypo]
 		Objects[7] = [7, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
-			"crayola", "normal", 2, [-0.11, 0.43, 0.07+shelfbase_dim[2]], 
-											[0.0, 0.0, math.pi/3.1], [0.04, 0.03, 0.18], nHypo]
+			"crayola", "normal", 2, [-0.3, 0.27, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
+											[0.0, 0.0, -math.pi/6.1], [0.04, 0.03, 0.18], nHypo]
 		Objects[8] = [8, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
 			"tissueBox", "normal", 1.5, [-0.2, 0.2, 0.085+shelfbase_dim[2]], 
 											[0.0, 0.0, -math.pi/1.2], [0.03, 0.03, 0.24], nHypo]
 		Objects[9] = [9, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
 			"brush", "invisible", 1, [0.07, -0.32, 0.03+shelfbase_dim[2]], 
-										[0.0, 0.0, -math.pi / 3.1], [0.028, 0.02, 0.2], nHypo]
+										[0.0, 0.0, -math.pi / 3.1], [0.028, 0.02, 0.2], 1]
 		Objects[10] = [10, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
 			"lightbulb", "phantom", 1.5, [0.14, 0.18, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
 													[0.0, 0.0, math.pi/6.0], [0.032, 0.035, 0.06], nHypo]
 		# pick goal offset
-		goalPos_offset = [-0.0, 0.0, 0.12]
+		goalPos_offset = [-0.12, 0.0, 0.0]
+		goalEuler = [0.0, math.pi/2, 0.0]
+		x_ll = kukaBasePosition[0] - standingBase_dim[0] / 2 - 0.2
+		x_ul = shelfbackPosition[0] - shelfback_dim[0] / 2
+		y_ll = middleflankPosition[1] + flank_dim[1] / 2
+		y_ul = leftflankPosition[1] - flank_dim[1] / 2
+		z_ll = middleflatPosition[2] + flat_dim[2] / 2
+		z_ul = topflatPosition[2] - flat_dim[2] / 2
 
 
 f_label = open(path + "/" + sys.argv[1] + sys.argv[2] + "_labelWeights.txt", "w")
@@ -387,15 +421,6 @@ for i in xrange(len(Objects)):
 	labelIdx = len(meshSet)
 f_label.close()
 
-'''
-##############start sampling##################
-f = open(path + "/" + sys.argv[1] + sys.argv[2] + "_samples.txt", "w")
-
-nodes = []
-
-nsamples = 100
-# f.write(str(nsamples)+"\n")
-temp_counter = 0
 
 ###### specify q_start and q_goal first ######
 # q_start
@@ -405,7 +430,7 @@ for i in range(1,8):
 	result = p.resetJointState(kukaID,i,home_configuration[i-1])
 goal_pose_pos = []
 for i in xrange(len(goalPos_offset)):
-	# The goal object always has the index zero
+	# The goal object always has the index 0 (zero)
 	goal_pose_pos.append(Objects[0][5][i] + goalPos_offset[i])
 goal_pose_quat = utils.euler_to_quaternion(goalEuler[0], goalEuler[1], goalEuler[2])
 
@@ -425,17 +450,25 @@ while goalCollision:
 		if not isCollision2:
 			goalCollision = False
 	print "collision for the goal? " + " " + str(goalCollision)
+	time.sleep(0.5)
 	# if goalCollision:
 	# 	## put the kuka arm back to home configuration for next IK solution
 	# 	for i in range(1,8):
 	# 		result = p.resetJointState(kukaID,i,home_configuration[i-1])
+##############################################################################
 
+
+##############start sampling##################
+f = open(path + "/" + sys.argv[1] + sys.argv[2] + "_samples.txt", "w")
+nodes = []
+nsamples = 20
+temp_counter = 0
 
 while temp_counter < nsamples:
 	# sample a cartesian ee pose and calculate the IK solution
-	temp_x = float(format(random.uniform((standingBasePosition[0]-standingBase_dim[0]/2-0.2), (shelfbackPosition[0]-shelfback_dim[0]/2)), '.2f'))
-	temp_y = float(format(random.uniform((middleflankPosition[1]+flank_dim[1]/2), (leftflankPosition[1]-flank_dim[1]/2)), '.2f'))
-	temp_z = float(format(random.uniform((middleflatPosition[2]+flat_dim[2]/2), (topflatPosition[2]-flat_dim[2]/2)), '.2f'))
+	temp_x = float(format(random.uniform(x_ll, x_ul), '.2f'))
+	temp_y = float(format(random.uniform(y_ll, y_ul), '.2f'))
+	temp_z = float(format(random.uniform(z_ll, z_ul), '.2f'))
 	ikSolution = p.calculateInverseKinematics(kukaID, kuka_ee_idx, [temp_x, temp_y, temp_z], ll, ul, jr)
 	for j in range(1,8):
 		result = p.resetJointState(kukaID,j,ikSolution[j-1])
@@ -451,6 +484,10 @@ while temp_counter < nsamples:
 		temp_counter += 1
 print "finish the sampling stage"
 
+
+import time
+startTime = time.clock()
+
 ############ connect neighbors to build roadmaps #############
 connectivity = np.zeros((nsamples, nsamples))
 tree = spatial.KDTree(nodes)
@@ -463,14 +500,14 @@ print "num_neighbors: " + str(num_neighbors)
 f1 = open(path + "/" + sys.argv[1] + sys.argv[2] + "_roadmap.txt", "w")
 nedge = 0
 # create a list to record the number of neighbors connected for each node
-neighbors_counts = [0] * nsamples
+# neighbors_counts = [0] * nsamples
 
 # for each node
 for i in xrange(len(nodes)):
 	queryNode = nodes[i]
 	knn = tree.query(queryNode, k=num_neighbors, p=2)
 	# for each neighbor
-	for j in xrange(len(knn[0])):
+	for j in xrange(len(knn[1])):
 		if knn[1][j] == i or connectivity[i][knn[1][j]] == 1:
 			# if the neighbor is the query node itself
 			# or the connectivity has been checked before
@@ -495,17 +532,18 @@ for i in xrange(len(nodes)):
 			connectivity[i][knn[1][j]] = 1
 			connectivity[knn[1][j]][i] = 1
 			# update the counting for neighbors
-			neighbors_counts[i] += 1
-			neighbors_counts[knn[1][j]] += 1
-	if i % 100 == 0:
+			# neighbors_counts[i] += 1
+			# neighbors_counts[knn[1][j]] += 1
+	if i % 100 == 99:
 		print "finish labeling and connecting neighbors for node " + str(i)
 # print neighbors_counts
 print "finish all the neighbors"
 # print neighbors_counts
 ######################################################################
+print "Time elapsed: ", time.clock() - startTime
+# input()
 
-
-###### query the start node and goal nodes ######
+###### add the start node and goal nodes to the roadmap######
 nodes.append(q_start)
 f.write(str(temp_counter) + " " + str(q_start[0]) + " " + str(q_start[1]) + " " \
 	+ str(q_start[2]) + " " + str(q_start[3]) + " " + str(q_start[4]) + " " + \
@@ -538,10 +576,8 @@ for j in xrange(len(knn[1])):
 			f1.write("\n")
 			print "successfully connecting the start to the roadmap\n"
 			# break # we just need to connect it, not necessarily to connect every neighbor
-			if (connectTimes >= 10):
+			if (connectTimes >= 3):
 				break
-
-
 
 ## pass goal collision checker
 nodes.append(q_goal)
@@ -580,222 +616,35 @@ for j in xrange(len(knn[1])):
 			# break # we just need to connect it, not necessarily to connect every neighbor
 		# else:
 		# 	print "The edge is not valid..." + str(j)
-			if (connectTimes >= 10):
+			if (connectTimes >= 3):
 				break
 
 f1.close()
 print (len(nodes))
+
+##########################################################################################
+# Call planning algorithm
+executeFile = "../robust_planning_20_icra/main" + " " + str(sys.argv[1]) + " " + str(sys.argv[2])
+subprocess.call(executeFile, shell=True)
+
+
+
+# Let's visualize the scene and execute the path 
+p.connect(p.GUI)
+p.setAdditionalSearchPath(pybullet_data.getDataPath())
+## load the Kuka robot arm ##
+p.loadURDF("kuka.urdf", useFixedBase=True)
+## load the static geometries
+
+
 '''
-
-
-
-
-
-
-
-'''
-##############start sampling##################
-f = open(path + "/" + sys.argv[1] + sys.argv[2] + "_samples.txt", "w")
-
-nodes = []
-
-nsamples = 1000
-# f.write(str(nsamples)+"\n")
-temp_counter = 0
-
-
-while temp_counter < nsamples:
-	# sample a configuration based on the joint limit
-	j1 = float(format(random.uniform(ll[0], ul[0]), '.4f'))
-	j2 = float(format(random.uniform(ll[1], ul[1]), '.4f'))
-	j3 = float(format(random.uniform(ll[2], ul[2]), '.4f'))
-	j4 = float(format(random.uniform(ll[3], ul[3]), '.4f'))
-	j5 = float(format(random.uniform(ll[4], ul[4]), '.4f'))
-	j6 = float(format(random.uniform(ll[5], ul[5]), '.4f'))
-	j7 = float(format(random.uniform(ll[6], ul[6]), '.4f'))
-
-	ikSolution = [j1, j2, j3, j4, j5, j6, j7]
-	# print "sample: " + str(ikSolution)
-	for j in range(1,8):
-		result = p.resetJointState(kukaID,j,ikSolution[j-1])
-	p.stepSimulation()
-	#time.sleep(0.05)
-	isCollision = utils.collisionCheck_staticG(kukaID, static_geometries)
-	if isCollision == False:
-		nodes.append(ikSolution)
-		## write it into a roadmap file
-		f.write(str(temp_counter) + " " + str(j1) + " " + str(j2) + " " \
-			+ str(j3) + " " + str(j4) + " " + str(j5) + " " + str(j6) + " " \
-			+ str(j7) + "\n")
-		temp_counter += 1
-
-
-############ connect neighbors to build roadmaps #############
-connectivity = np.zeros((nsamples, nsamples))
-tree = spatial.KDTree(nodes)
-neighbors_const = 2.5 * math.e * (1 + 1/len(home_configuration))
-num_neighbors = int(neighbors_const * math.log(nsamples))
-if num_neighbors >= nsamples:
-	num_neighbors = nsamples -1 
-print "num_neighbors: " + str(num_neighbors)
-
-f1 = open(path + "/" + sys.argv[1] + sys.argv[2] + "_roadmap.txt", "w")
-nedge = 0
-# create a list to record the number of neighbors connected for each node
-neighbors_counts = [0] * nsamples
-
-# for each node
-for i in xrange(len(nodes)):
-	queryNode = nodes[i]
-	knn = tree.query(queryNode, k=num_neighbors, p=2)
-	# for each neighbor
-	for j in xrange(len(knn[0])):
-		if knn[1][j] == i or connectivity[i][knn[1][j]] == 1:
-			# if the neighbor is the query node itself
-			# or the connectivity has been checked before
-			# then skip the edge checking procedure
-			continue
-		# Otherwise, check the edge validity (in terms of collision with static geometry)
-		# between the query node and the the current neighbor
-		neighbor = nodes[knn[1][j]]
-		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID, 
-															static_geometries)
-		if isEdgeValid:
-			# write this edge information with their cost and labels into the txt file
-			nedge += 1
-			# It is a valid edge in terms of static geometry
-			# Let's check the collision status for each hypothesis for the purpose of labeling
-			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID, meshSet)
-			f1.write(str(i) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")
-			for tl in temp_labels:
-				f1.write(str(tl) + " ")
-			f1.write("\n")
-			# update connectivity information
-			connectivity[i][knn[1][j]] = 1
-			connectivity[knn[1][j]][i] = 1
-			# update the counting for neighbors
-			neighbors_counts[i] += 1
-			neighbors_counts[knn[1][j]] += 1
-	if i % 100 == 0:
-		print "finish labeling and connecting neighbors for node " + str(i)
-# print neighbors_counts
-print "finish all the neighbors"
-######################################################################
-
-
-###### query the start node and goal nodes ######
-q_start = home_configuration
-nodes.append(q_start)
-f.write(str(temp_counter) + " " + str(q_start[0]) + " " + str(q_start[1]) + " " \
-	+ str(q_start[2]) + " " + str(q_start[3]) + " " + str(q_start[4]) + " " + \
-	str(q_start[5]) + " " + str(q_start[6]) + "\n")
-temp_counter += 1
-## connect the start to the roadmap
-tree = spatial.KDTree(nodes)
-queryNode = nodes[temp_counter-1]
-knn = tree.query(queryNode, k=(nsamples-10), p=2)
-# for each neighbor
-for j in xrange(len(knn[1])):
-	if knn[1][j] == (temp_counter-1):
-		continue
-	else:
-		# check collision
-		neighbor = nodes[knn[1][j]]
-		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID, 
-															static_geometries)
-		if isEdgeValid:
-			# write this edge information with their cost and labels into the txt file
-			nedge += 1
-			# It is a valid edge in terms of static geometry
-			# Let's check the collision status for each hypothesis for the purpose of labeling
-			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID, meshSet)			
-			f1.write(str(temp_counter-1) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")
-			for tl in temp_labels:
-				f1.write(str(tl) + " ")
-			f1.write("\n")
-			print "successfully connecting the start to the roadmap\n"
-			break # we just need to connect it, not necessarily to connect every neighbor
-
-# goal nodes
-## put the kuka arm back to home configuration for next IK solution
-for i in range(1,8):
-	result = p.resetJointState(kukaID,i,home_configuration[i-1])
-goal_pose_pos = []
-for i in xrange(len(goalPos_offset)):
-	# The goal object always has the index zero
-	goal_pose_pos.append(Objects[0][5][i] + goalPos_offset[i])
-goal_pose_quat = utils.euler_to_quaternion(goalEuler[0], goalEuler[1], goalEuler[2])
-
-goalCollision = True
-while goalCollision:
-	q_goal = p.calculateInverseKinematics(kukaID, kuka_ee_idx, goal_pose_pos, 
-													goal_pose_quat, ll, ul, jr)
-	for j in range(1,8):
-		result = p.resetJointState(kukaID,j,q_goal[j-1])
-	p.stepSimulation()
-	# check collision for both static geometry & objects
-	isCollision1 = utils.collisionCheck_staticG(kukaID, static_geometries)
-	if isCollision1:
-		pass
-	else:
-		isCollision2 = utils.collisionCheck_hypos(kukaID, meshSet)
-		if not isCollision2:
-			goalCollision = False
-	print "collision for the goal? " + " " + str(goalCollision)
-	# if goalCollision:
-	# 	## put the kuka arm back to home configuration for next IK solution
-	# 	for i in range(1,8):
-	# 		result = p.resetJointState(kukaID,i,home_configuration[i-1])
-
-## pass goal collision checker
-nodes.append(q_goal)
-
-f.write(str(temp_counter) + " " + str(q_goal[0]) + " " + str(q_goal[1]) + " " \
-	+ str(q_goal[2]) + " " + str(q_goal[3]) + " " + str(q_goal[4]) + " " + \
-	str(q_goal[5]) + " " + str(q_goal[6]))
-temp_counter += 1
-f.close()
-
-## connect the goal to the roadmap
-tree = spatial.KDTree(nodes)
-queryNode = nodes[temp_counter-1]
-knn = tree.query(queryNode, k=(nsamples-10), p=2)
-# for each neighbor
-for j in xrange(len(knn[1])):
-	if knn[1][j] == (temp_counter - 1):
-		continue
-	else:
-		# check collision
-		neighbor = nodes[knn[1][j]]
-		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID, 
-															static_geometries)
-		if isEdgeValid:
-			# write this edge information with their cost and labels into the txt file
-			nedge += 1
-			# It is a valid edge in terms of static geometry
-			# Let's check the collision status for each hypothesis for the purpose of labeling
-			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID, meshSet)		
-			f1.write(str(temp_counter-1) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")
-			for tl in temp_labels:
-				f1.write(str(tl) + " ")
-			f1.write("\n")			
-			print "successfully connecting the goal to the roadmap\n"
-			break # we just need to connect it, not necessarily to connect every neighbor
-		# else:
-		# 	print "The edge is not valid..." + str(j)
-
-f1.close()
-print (len(nodes))
-'''
-
-
 ## execute the trajectory in the scene without the objects
-traj_file = path + "/shelf1_traj.txt"
+traj_file = path + "/" + sys.argv[1] + sys.argv[2] + "_traj.txt"
 utils.executeTrajectory(traj_file, kukaID)
-
-
+'''
 
 time.sleep(10000)
+
 
 
 
