@@ -14,7 +14,7 @@ class Mesh:
 		self.pos = pos
 		self.quat = quat
 		self.prob = prob
-		self.role = objectRole
+		self.objectRole = objectRole
 
 	def setProb(self, prob):
 		self.prob = prob
@@ -56,21 +56,26 @@ def comp_prob(pos, temp_pos, angles, temp_zangle):
 # the variance is where the uncertainty comes from.
 # Each object has different uncertainty level. (But with the same dimension)
 def createMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale, 
-								pos, angles, uncertainty, nhypo=3):
+								pos, angles, uncertainty, nhypo, clientId, isPlanning):
 	# starting label index for the current obs
 	# with the mesh file and scale 
 	# create the collision and visual shape of the object
+	meshes = []
+
+	if objectRole == "phantom" and isPlanning == False:
+		return meshes
+	if objectRole == "invisible" and isPlanning == True:
+		return meshes
 	_c = p.createCollisionShape(shapeType=p.GEOM_MESH, 
-			fileName=meshfile, meshScale=[scale, scale, scale])
+			fileName=meshfile, meshScale=[scale, scale, scale], physicsClientId=clientId)
 	_v = p.createVisualShape(shapeType=p.GEOM_MESH,
-		fileName=meshfile, meshScale=[scale, scale, scale])
+		fileName=meshfile, meshScale=[scale, scale, scale], physicsClientId=clientId)
 
 	quat = euler_to_quaternion(angles[2], angles[1], angles[0])
 
-	meshes = []
 	# first put the true pose of the objects into the meshes
 	_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
-						basePosition=pos,baseOrientation=quat)
+						basePosition=pos,baseOrientation=quat, physicsClientId=clientId)
 	meshes.append(Mesh(_m, meshType, objIndx, labelIdx, pos, quat, 1, objectRole))
 
 	# for each hypothesis other than the true pose
@@ -92,7 +97,7 @@ def createMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale,
 		temp_prob = comp_prob(pos, temp_pos, angles, temp_zangle)
 		# create the mesh and save it into meshes
 		_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
-						basePosition=temp_pos,baseOrientation=temp_quat)
+						basePosition=temp_pos,baseOrientation=temp_quat, physicsClientId=clientId)
 		meshes.append(Mesh(_m, meshType, objIndx, labelIdx+h, temp_pos, temp_quat, temp_prob, objectRole))
 
 
@@ -101,32 +106,29 @@ def createMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale,
 	for mesh in meshes:
 		temp_probs.append(mesh.prob)
 	temp_sum = sum(temp_probs)
-	for i in xrange(0, len(meshes)):
-		meshes[i].setProb(round(temp_probs[i]/temp_sum, 2))
-		f.write( str(labelIdx) + " " + str(meshes[i].objIndx) + " " + str(meshes[i].prob) + "\n" )
-		labelIdx += 1
-
-	# print the meshes for the object please
-	printPoses(meshes)
+	if isPlanning:
+		for i in xrange(0, len(meshes)):
+			meshes[i].setProb(round(temp_probs[i]/temp_sum, 2))
+			f.write( str(labelIdx) + " " + str(meshes[i].objIndx) + " " + str(meshes[i].prob) + "\n" )
+			labelIdx += 1
 
 
 	return meshes
 
 def printPoses(meshes):
-	print "----------------------------------\n"
-	print "Poses for object " + str(meshes[0].objIndx) + ": " + meshes[0].meshType + "\n"
 	for mesh in meshes:
 		print "Label " + str(mesh.hypoIndx) + " " + str(mesh.pos) + \
-							" " +str(mesh.quat) + " " + str(mesh.prob) + "\n"
-	print "----------------------------------\n"
+							" " + str(mesh.quat) + " " + str(mesh.prob) + \
+							"\tfor object " + str(mesh.objIndx) + ": " + mesh.meshType
+	print "----------------------------\n"
 
 
-def collisionCheck_staticG(kukaID, static_geometries):
+def collisionCheck_staticG(kukaID, static_geometries, clientId):
 	isCollision = False
 	# counter = 1
 	# loop through all static geometries
 	for g in static_geometries:
-		contacts = p.getContactPoints(kukaID, g)
+		contacts = p.getContactPoints(kukaID, g, physicsClientId=clientId)
 		if len(contacts) != 0:
 			isCollision = True
 			# if counter == 1:
@@ -137,12 +139,12 @@ def collisionCheck_staticG(kukaID, static_geometries):
 	# print "static collision? " + "\t" + str(isCollision)
 	return isCollision
 
-def collisionCheck_hypos(kukaID, meshSet):
+def collisionCheck_hypos(kukaID, meshSet, clientId):
 	isCollision = False
 	# loop through meshes of each hypothesis
 	for m in meshSet:
-		if m.role != "invisible":
-			contacts = p.getContactPoints(kukaID, m.m)
+		if m.objectRole != "invisible":
+			contacts = p.getContactPoints(kukaID, m.m, physicsClientId=clientId)
 			if len(contacts) != 0:
 				isCollision = True
 				# print "object collision? " + "\t" + m.meshType
@@ -150,7 +152,7 @@ def collisionCheck_hypos(kukaID, meshSet):
 	# print "__________________________________________"
 	return isCollision
 
-def checkEdgeValidity(n1, n2, kukaID, static_geometries):
+def checkEdgeValidity(n1, n2, kukaID, static_geometries, clientId):
 	step = 3 * math.pi / 180
 	nseg = int(math.ceil(max(math.fabs(n1[0]-n2[0]), math.fabs(n1[1]-n2[1]), 
 			math.fabs(n1[2]-n2[2]), math.fabs(n1[3]-n2[3]), math.fabs(n1[4]-n2[4]), 
@@ -167,10 +169,10 @@ def checkEdgeValidity(n1, n2, kukaID, static_geometries):
 		intermNode = [interm_j1, interm_j2, interm_j3, interm_j4, 
 											interm_j5, interm_j6, interm_j7]
 		for j in range(1,8):
-			result = p.resetJointState(kukaID,j,intermNode[j-1])
-		p.stepSimulation()
+			result = p.resetJointState(kukaID,j,intermNode[j-1], physicsClientId=clientId)
+		p.stepSimulation(clientId)
 		#time.sleep(0.05)
-		isCollision = collisionCheck_staticG(kukaID, static_geometries)
+		isCollision = collisionCheck_staticG(kukaID, static_geometries, clientId)
 		if isCollision == True:
 			isEdgeValid = False
 			break
@@ -178,7 +180,7 @@ def checkEdgeValidity(n1, n2, kukaID, static_geometries):
 
 	return isEdgeValid
 
-def label_the_edge(n1, n2, kukaID, meshSet):
+def label_the_edge(n1, n2, kukaID, meshSet, clientId):
 	temp_labels = []
 	labels_status = [False] * len(meshSet)
 	step = 5 * math.pi / 180
@@ -196,15 +198,15 @@ def label_the_edge(n1, n2, kukaID, meshSet):
 		intermNode = [interm_j1, interm_j2, interm_j3, interm_j4, 
 											interm_j5, interm_j6, interm_j7]
 		for j in range(1,8):
-			result = p.resetJointState(kukaID,j,intermNode[j-1])
-		p.stepSimulation()
+			result = p.resetJointState(kukaID,j,intermNode[j-1], physicsClientId=clientId)
+		p.stepSimulation(clientId)
 		#time.sleep(0.05)
 		for m in meshSet:
-			if m.role != "invisible":
+			if m.objectRole != "invisible":
 				## Before you do collision checker
 				## check if that hypo has been checked before
 				if labels_status[m.hypoIndx] == False:
-					contacts = p.getContactPoints(kukaID, m.m)
+					contacts = p.getContactPoints(kukaID, m.m, physicsClientId=clientId)
 					if len(contacts) != 0:
 						# print "Collision with " + str(m.meshType) + " on hypo " + str(m.hypoIndx)
 						temp_labels.append(m.hypoIndx)
@@ -213,20 +215,20 @@ def label_the_edge(n1, n2, kukaID, meshSet):
 	# print "*********************"
 	return temp_labels
 
-def executeTrajectory(traj_file, kukaID):
+def executeTrajectory(traj_file, kukaID, clientId):
 	traj = []
 	f = open(traj_file)
-	time.sleep(10)
+	time.sleep(2)
 	previous_state = None
 
 	for line in f:
 		current_state = line.split()
 		current_state = map(float, current_state)
 		if (previous_state is not None):
-			local_move(previous_state, current_state, kukaID)
+			local_move(previous_state, current_state, kukaID, clientId)
 		previous_state = current_state
 
-def local_move(n1, n2, kukaID):
+def local_move(n1, n2, kukaID, clientId):
 	step = 5 * math.pi / 180
 	nseg = int(math.ceil(max(math.fabs(n1[0]-n2[0]), 
 		math.fabs(n1[1]-n2[1]), math.fabs(n1[2]-n2[2]), 
@@ -249,8 +251,8 @@ def local_move(n1, n2, kukaID):
 		# if (i == nseg):
 		# 	print "end state: " + str(intermNode)
 		for j in range(1,8):
-			result = p.resetJointState(kukaID,j,intermNode[j-1])
-		p.stepSimulation()
+			result = p.resetJointState(kukaID,j,intermNode[j-1], physicsClientId=clientId)
+		p.stepSimulation(clientId)
 		time.sleep(0.05)
 
 	# print "------------------------------------------\n"

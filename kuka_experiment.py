@@ -14,15 +14,18 @@ import subprocess
 from scipy import spatial
 import cPickle as pickle
 
-p.connect(p.GUI)
+planningServer = p.connect(p.DIRECT)
+executingServer = p.connect(p.GUI)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 kuka_ee_idx = 8
-static_geometries = []
-
-# Introduce Kuka arm 
-kukaID = p.loadURDF("kuka.urdf", useFixedBase=True)
-static_geometries.append(kukaID)
-print "Kuka Robot: " + str(kukaID)
+static_geometries_planning = []
+static_geometries_executing = []
+# Introduce Kuka arm
+kukaID_p = p.loadURDF("kuka.urdf", useFixedBase=True, physicsClientId=planningServer)
+kukaID_e = p.loadURDF("kuka.urdf", useFixedBase=True, physicsClientId=executingServer)
+static_geometries_planning.append(kukaID_p)
+static_geometries_executing.append(kukaID_e)
+print "Kuka Robot: " + str(kukaID_e)
 
 #lower limits for null space
 ll = [-2.967, -2, -2.96, 0.19, -2.96, -2.09, -3.05]
@@ -35,7 +38,6 @@ rp = [0,0,0,-np.pi/2,0,np.pi/2,0]
 
 # for i in range(p.getNumJoints(kukaID)):
 # 	print(p.getJointInfo(kukaID,i))
-
 
 nHypo = 1
 
@@ -51,23 +53,38 @@ if sys.argv[1] == "table":
 		pass
 
 	print "---------Enter to table scene!---------"
-	home_configuration = [0,0,0,-np.pi/2,0,np.pi/2,0]
-	for i in range(1,8):
-		result = p.resetJointState(kukaID,i,home_configuration[i-1])
 	# create the static geometries - table
 	table_dim = np.array([0.7, 1.3, 0.35])
 	tablePosition=[0, 0, table_dim[2]/2]
-	table_c = p.createCollisionShape(shapeType=p.GEOM_BOX,
-							halfExtents=table_dim/2)
-	table_v = p.createVisualShape(shapeType=p.GEOM_BOX,
-							halfExtents=table_dim/2)
-	tableM = p.createMultiBody(baseCollisionShapeIndex=table_c,
-					baseVisualShapeIndex=table_v,basePosition=tablePosition)
-	static_geometries.append(tableM)
+	table_c_p = p.createCollisionShape(shapeType=p.GEOM_BOX,
+							halfExtents=table_dim/2, physicsClientId=planningServer)
+	table_v_p = p.createVisualShape(shapeType=p.GEOM_BOX,
+							halfExtents=table_dim/2, physicsClientId=planningServer)
+	tableM_p = p.createMultiBody(baseCollisionShapeIndex=table_c_p, baseVisualShapeIndex=table_v_p,
+										basePosition=tablePosition, physicsClientId=planningServer)
+	table_c_e = p.createCollisionShape(shapeType=p.GEOM_BOX,
+							halfExtents=table_dim/2, physicsClientId=executingServer)
+	table_v_e = p.createVisualShape(shapeType=p.GEOM_BOX,
+							halfExtents=table_dim/2, physicsClientId=executingServer)
+	tableM_e = p.createMultiBody(baseCollisionShapeIndex=table_c_e, baseVisualShapeIndex=table_v_e,
+										basePosition=tablePosition, physicsClientId=executingServer)
+	static_geometries_planning.append(tableM_p)
+	static_geometries_executing.append(tableM_e)
+	print "table: " + str(tableM_e)
 	#reset the base of Kuka
 	kukaBasePosition = [-table_dim[0]/2-0.2, 0, 0]
 	kukaBaseOrientation = [0, 0, 0, 1]
-	p.resetBasePositionAndOrientation(kukaID, kukaBasePosition, kukaBaseOrientation)
+	p.resetBasePositionAndOrientation(kukaID_p, kukaBasePosition, 
+									kukaBaseOrientation, physicsClientId=planningServer)
+	p.resetBasePositionAndOrientation(kukaID_e, kukaBasePosition, 
+									kukaBaseOrientation, physicsClientId=executingServer)
+	# set Kuka home configuration
+	home_configuration = [0,0,0,-np.pi/2,0,np.pi/2,0]
+	for i in range(1,8):
+		result_p = p.resetJointState(kukaID_p, i, home_configuration[i-1], 
+															physicsClientId=planningServer)
+		result_e = p.resetJointState(kukaID_e, i, home_configuration[i-1], 
+															physicsClientId=executingServer)
 ######################################################################	
 	if sys.argv[2] == "1":
 		path = table_path + "/scenario1"
@@ -139,12 +156,12 @@ if sys.argv[1] == "table":
 		Objects[4] = [4, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
 					"brush", "normal", 1, [0.17, -0.40, 0.02+table_dim[2]], 
 											[0.0, 0.0, -math.pi / 4.5], [0.028, 0.02, 0.2], nHypo]
-		Objects[5] = [5, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
-				"lightbulb", "phantom", 1.5, [-0.2, 0.36, 0.05+table_dim[2]], 
-											[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
-		Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
+		Objects[5] = [5, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
 				"glucoseBottle", "normal", 1.5, [0.2, 0.41, 0.1+table_dim[2]], 
 											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
+		Objects[6] = [6, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
+				"lightbulb", "phantom", 1.5, [-0.2, 0.36, 0.05+table_dim[2]], 
+											[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
 		# pick goal offset
 		goalPos_offset = [-0.03, 0.0, 0.127]
 		goalEuler = [0.0, 0.0, 0.0] ## tabletop picking
@@ -180,27 +197,27 @@ if sys.argv[1] == "table":
 		Objects[3] = [3, "/mesh/ticonderoga_12_pencils/ticonderoga_12_pencils.obj", "pencils", 
 				"normal", 1, [0.16, -0.08, 0.01+table_dim[2]], 
 									[0.0, math.pi/2, -math.pi/8.8], [0.05, 0.04, 0.25], nHypo]
-		Objects[4] = [4, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
-				"glue", "invisible", 1.5, [0.03, 0.38, 0.11+table_dim[2]], 
-									[math.pi / 2, 0.0, 67*math.pi/180], [0.07, 0.07, 0.5], 1]
 		# Objects[5] = [5, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", 
 		# 		"coffeeJar", "normal", 2, [-0.2, -0.09, 0.12+table_dim[2]], 
 		# 								[math.pi/2, 0.0, -math.pi/3.9], [0.026, 0.01, 0.24], nHypo]
-		Objects[5] = [5, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
+		Objects[4] = [4, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
 				"glucoseBottle", "normal", 1.5, [0.26, 0.13, 0.1+table_dim[2]], 
 											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
-		Objects[6] = [6, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
+		Objects[5] = [5, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
 				"crayola", "normal", 2, [-0.09, 0.16, 0.09+table_dim[2]], 
-												[math.pi/2, 0.0, math.pi/3], [0.04, 0.03, 0.18], nHypo]
-		Objects[7] = [7, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
+											[math.pi/2, 0.0, math.pi/3], [0.04, 0.03, 0.18], nHypo]
+		Objects[6] = [6, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
 				"tissueBox", "normal", 1.5, [0.0, 0.0, 0.1+table_dim[2]], 
 											[0.0, math.pi/2, -math.pi/3], [0.03, 0.03, 0.24], nHypo]
-		Objects[8] = [8, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
+		Objects[7] = [7, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
 				"brush", "normal", 1, [-0.07, -0.33, 0.02+table_dim[2]], 
 											[0.0, 0.0, -math.pi / 4.5], [0.028, 0.02, 0.2], nHypo]
-		Objects[9] = [9, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
+		Objects[8] = [8, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
 				"lightbulb", "phantom", 1.5, [0.15, 0.45, 0.05+table_dim[2]], 
 											[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
+		Objects[9] = [9, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
+				"glue", "invisible", 1.5, [0.03, 0.38, 0.11+table_dim[2]], 
+									[math.pi / 2, 0.0, 67*math.pi/180], [0.07, 0.07, 0.5], 1]
 		# pick goal offset
 		goalPos_offset = [-0.03, 0.0, 0.14]
 		goalEuler = [0.0, 0.0, 0.0] ## tabletop picking
@@ -222,85 +239,159 @@ if sys.argv[1] == "shelf":
 		pass
 
 	print "---------Enter to shelf scene!---------"
-	home_configuration = [0,0,0,0,0,0,0]
-	for i in range(1,8):
-		result = p.resetJointState(kukaID,i,home_configuration[i-1])
 	#standingBase
 	standingBase_dim = np.array([0.3, 0.3, 0.65])
-	standingBase_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=standingBase_dim/2)
-	standingBase_v = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=standingBase_dim/2)
 	standingBasePosition=[-0.6, 0.0, standingBase_dim[2]/2]
-	standingBaseM = p.createMultiBody(baseCollisionShapeIndex=standingBase_c,
-					baseVisualShapeIndex=standingBase_v,basePosition=standingBasePosition)
-	static_geometries.append(standingBaseM)
-	print "standing base: " + str(standingBaseM)
+	standingBase_c_p = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+					halfExtents=standingBase_dim/2, physicsClientId=planningServer)
+	standingBase_v_p = p.createVisualShape(shapeType=p.GEOM_BOX, 
+					halfExtents=standingBase_dim/2, physicsClientId=planningServer)
+	standingBaseM_p = p.createMultiBody(baseCollisionShapeIndex=standingBase_c_p,
+							baseVisualShapeIndex=standingBase_v_p,
+								basePosition=standingBasePosition, physicsClientId=planningServer)
+	standingBase_c_e = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+					halfExtents=standingBase_dim/2, physicsClientId=executingServer)
+	standingBase_v_e = p.createVisualShape(shapeType=p.GEOM_BOX, 
+					halfExtents=standingBase_dim/2, physicsClientId=executingServer)
+	standingBaseM_e = p.createMultiBody(baseCollisionShapeIndex=standingBase_c_e,
+							baseVisualShapeIndex=standingBase_v_e,
+								basePosition=standingBasePosition, physicsClientId=executingServer)
+	static_geometries_planning.append(standingBaseM_p)
+	static_geometries_executing.append(standingBaseM_e)
+	print "standing base: " + str(standingBaseM_e)
 	# create the static geometries - shelf
 	# shelfbase
 	shelfbase_dim = np.array([0.7, 1.3, 0.3])
-	shelfbase_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=shelfbase_dim/2)
-	shelfbase_v = p.createVisualShape(shapeType=p.GEOM_BOX,
-					halfExtents=shelfbase_dim/2, rgbaColor=[0.41, 0.41, 0.41, 1])
 	shelfbasePosition = [0.0, 0.0, shelfbase_dim[2]/2]
-	shelfbaseM = p.createMultiBody(baseCollisionShapeIndex=shelfbase_c,
-					baseVisualShapeIndex=shelfbase_v,basePosition=shelfbasePosition)
-	static_geometries.append(shelfbaseM)
-	print "shelf base: " + str(shelfbaseM)
+	shelfbase_c_p = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+							halfExtents=shelfbase_dim/2, physicsClientId=planningServer)
+	shelfbase_v_p = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=shelfbase_dim/2, 
+								rgbaColor=[0.41, 0.41, 0.41, 1], physicsClientId=planningServer)
+	shelfbaseM_p = p.createMultiBody(baseCollisionShapeIndex=shelfbase_c_p,
+							baseVisualShapeIndex=shelfbase_v_p,
+								basePosition=shelfbasePosition, physicsClientId=planningServer)
+	shelfbase_c_e = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+							halfExtents=shelfbase_dim/2, physicsClientId=executingServer)
+	shelfbase_v_e = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=shelfbase_dim/2, 
+								rgbaColor=[0.41, 0.41, 0.41, 1], physicsClientId=executingServer)
+	shelfbaseM_e = p.createMultiBody(baseCollisionShapeIndex=shelfbase_c_e,
+							baseVisualShapeIndex=shelfbase_v_e,
+								basePosition=shelfbasePosition, physicsClientId=executingServer)
+	static_geometries_planning.append(shelfbaseM_p)
+	static_geometries_executing.append(shelfbaseM_e)
+	print "shelf base: " + str(shelfbaseM_e)
 	# the shape and visual of the flank
 	flank_dim = np.array([shelfbase_dim[0], 0.06, 1.2])
-	flank_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=flank_dim/2)
-	flank_v = p.createVisualShape(shapeType=p.GEOM_BOX,
-					halfExtents=flank_dim/2, rgbaColor=[0.63, 0.32, 0.18, 1])
+	flank_c_p = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+								halfExtents=flank_dim/2, physicsClientId=planningServer)
+	flank_v_p = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=flank_dim/2, 
+							rgbaColor=[0.63, 0.32, 0.18, 1], physicsClientId=planningServer)
+	flank_c_e = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+								halfExtents=flank_dim/2, physicsClientId=executingServer)
+	flank_v_e = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=flank_dim/2, 
+							rgbaColor=[0.63, 0.32, 0.18, 1], physicsClientId=executingServer)
 	#leftflank
 	leftflankPosition = [0.0, shelfbase_dim[1]/2-flank_dim[1]/2, shelfbase_dim[2]+flank_dim[2]/2]
-	leftflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
-					baseVisualShapeIndex=flank_v,basePosition=leftflankPosition)
-	static_geometries.append(leftflankM)
-	print "left flank: " + str(leftflankM)
+	leftflankM_p = p.createMultiBody(baseCollisionShapeIndex=flank_c_p, 
+								baseVisualShapeIndex=flank_v_p, 
+									basePosition=leftflankPosition, physicsClientId=planningServer)
+	leftflankM_e = p.createMultiBody(baseCollisionShapeIndex=flank_c_e, 
+								baseVisualShapeIndex=flank_v_e, 
+									basePosition=leftflankPosition, physicsClientId=executingServer)
+	static_geometries_planning.append(leftflankM_p)
+	static_geometries_executing.append(leftflankM_e)
+	print "left flank: " + str(leftflankM_e)
 	#rightflank
 	rightflankPosition = [0.0, -shelfbase_dim[1]/2+flank_dim[1]/2, shelfbase_dim[2]+flank_dim[2]/2]
-	rightflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
-					baseVisualShapeIndex=flank_v,basePosition=rightflankPosition)
-	static_geometries.append(rightflankM)
-	print "right flank: " + str(rightflankM)
+	rightflankM_p = p.createMultiBody(baseCollisionShapeIndex=flank_c_p,
+								baseVisualShapeIndex=flank_v_p, 
+									basePosition=rightflankPosition, physicsClientId=planningServer)
+	rightflankM_e = p.createMultiBody(baseCollisionShapeIndex=flank_c_e,
+								baseVisualShapeIndex=flank_v_e, 
+									basePosition=rightflankPosition, physicsClientId=executingServer)
+	static_geometries_planning.append(rightflankM_p)
+	static_geometries_executing.append(rightflankM_e)
+	print "right flank: " + str(rightflankM_e)
 	#middleflank
 	middleflankPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]/2]
-	middleflankM = p.createMultiBody(baseCollisionShapeIndex=flank_c,
-					baseVisualShapeIndex=flank_v,basePosition=middleflankPosition)
-	static_geometries.append(middleflankM)
-	print "middle flank: " + str(middleflankM)
+	middleflankM_p = p.createMultiBody(baseCollisionShapeIndex=flank_c_p,
+							baseVisualShapeIndex=flank_v_p, 
+								basePosition=middleflankPosition, physicsClientId=planningServer)
+	middleflankM_e = p.createMultiBody(baseCollisionShapeIndex=flank_c_e,
+							baseVisualShapeIndex=flank_v_e, 
+								basePosition=middleflankPosition, physicsClientId=executingServer)
+	static_geometries_planning.append(middleflankM_p)
+	static_geometries_executing.append(middleflankM_e)
+	print "middle flank: " + str(middleflankM_e)
 	#the shape and visual of the flat
 	flat_dim = np.array([shelfbase_dim[0], shelfbase_dim[1], 0.06])
-	flat_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=flat_dim/2)
-	flat_v = p.createVisualShape(shapeType=p.GEOM_BOX,
-					halfExtents=flat_dim/2, rgbaColor=[0.41, 0.41, 0.41, 1])
+	flat_c_p = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+									halfExtents=flat_dim/2, physicsClientId=planningServer)
+	flat_v_p = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=flat_dim/2, 
+							rgbaColor=[0.41, 0.41, 0.41, 1], physicsClientId=planningServer)
+	flat_c_e = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+									halfExtents=flat_dim/2, physicsClientId=executingServer)
+	flat_v_e = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=flat_dim/2, 
+							rgbaColor=[0.41, 0.41, 0.41, 1], physicsClientId=executingServer)
 	#middleflat
 	middleflatPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]/2]
-	middleflatM = p.createMultiBody(baseCollisionShapeIndex=flat_c,
-					baseVisualShapeIndex=flat_v,basePosition=middleflatPosition)
-	static_geometries.append(middleflatM)	
-	print "middle flat: " + str(middleflatM)
+	middleflatM_p = p.createMultiBody(baseCollisionShapeIndex=flat_c_p,
+						baseVisualShapeIndex=flat_v_p, 
+							basePosition=middleflatPosition, physicsClientId=planningServer)
+	middleflatM_e = p.createMultiBody(baseCollisionShapeIndex=flat_c_e,
+						baseVisualShapeIndex=flat_v_e, 
+							basePosition=middleflatPosition, physicsClientId=executingServer)
+	static_geometries_planning.append(middleflatM_p)
+	static_geometries_executing.append(middleflatM_e)
+	print "middle flat: " + str(middleflatM_e)
 	#topflat
 	topflatPosition = [0.0, 0.0, shelfbase_dim[2]+flank_dim[2]+flat_dim[2]/2]
-	topflatM = p.createMultiBody(baseCollisionShapeIndex=flat_c,
-					baseVisualShapeIndex=flat_v,basePosition=topflatPosition)
-	static_geometries.append(topflatM)
-	print "top flat: " + str(topflatM)
+	topflatM_p = p.createMultiBody(baseCollisionShapeIndex=flat_c_p,
+						baseVisualShapeIndex=flat_v_p, 
+							basePosition=topflatPosition, physicsClientId=planningServer)
+	topflatM_e = p.createMultiBody(baseCollisionShapeIndex=flat_c_e,
+						baseVisualShapeIndex=flat_v_e, 
+							basePosition=topflatPosition, physicsClientId=executingServer)
+	static_geometries_planning.append(topflatM_p)
+	static_geometries_executing.append(topflatM_e)
+	print "top flat: " + str(topflatM_e)
 	#back
 	shelfback_dim = np.array([0.02, shelfbase_dim[1], flank_dim[2]+flat_dim[2]])
-	shelfback_c = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=shelfback_dim/2)
-	shelfback_v = p.createVisualShape(shapeType=p.GEOM_BOX,
-					halfExtents=shelfback_dim/2, rgbaColor=[0.63, 0.32, 0.18, 1])
-	shelfbackPosition = [shelfbase_dim[0]/2-shelfback_dim[0]/2, 0.0, shelfbase_dim[2]+shelfback_dim[2]/2]
-	shelfbackM = p.createMultiBody(baseCollisionShapeIndex=shelfback_c,
-					baseVisualShapeIndex=shelfback_v,basePosition=shelfbackPosition)
-	static_geometries.append(shelfbackM)
-	print "shelf back: " + str(shelfbackM)
+	shelfbackPosition = [shelfbase_dim[0]/2-shelfback_dim[0]/2, 0.0, 
+														shelfbase_dim[2]+shelfback_dim[2]/2]
+	shelfback_c_p = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=shelfback_dim/2, 
+																physicsClientId=planningServer)
+	shelfback_v_p = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=shelfback_dim/2, 
+								rgbaColor=[0.63, 0.32, 0.18, 1], physicsClientId=planningServer)
+	shelfback_c_e = p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=shelfback_dim/2, 
+																physicsClientId=executingServer)
+	shelfback_v_e = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=shelfback_dim/2, 
+								rgbaColor=[0.63, 0.32, 0.18, 1], physicsClientId=executingServer)
+	shelfbackM_p = p.createMultiBody(baseCollisionShapeIndex=shelfback_c_p,
+							baseVisualShapeIndex=shelfback_v_p, 
+								basePosition=shelfbackPosition, physicsClientId=planningServer)
+	shelfbackM_e = p.createMultiBody(baseCollisionShapeIndex=shelfback_c_e,
+							baseVisualShapeIndex=shelfback_v_e, 
+								basePosition=shelfbackPosition, physicsClientId=executingServer)
+	static_geometries_planning.append(shelfbackM_p)
+	static_geometries_executing.append(shelfbackM_e)
+	print "shelf back: " + str(shelfbackM_e)
 	#reset the base of Kuka
 	kukaBasePosition = [standingBasePosition[0], standingBasePosition[1], standingBase_dim[2]+0.005]
 	kukaBaseOrientation = utils.euler_to_quaternion(-math.pi/2, math.pi, 0.0)
 	# kukaBaseOrientation = utils.euler_to_quaternion(math.pi/2, math.pi, 0.0)
 	# kukaBaseOrientation = utils.euler_to_quaternion(0.0, 0.0, 0.0)
-	p.resetBasePositionAndOrientation(kukaID, kukaBasePosition, kukaBaseOrientation)
+	p.resetBasePositionAndOrientation(kukaID_p, kukaBasePosition, 
+									kukaBaseOrientation, physicsClientId=planningServer)
+	p.resetBasePositionAndOrientation(kukaID_e, kukaBasePosition, 
+									kukaBaseOrientation, physicsClientId=executingServer)
+	# set Kuka home configuration
+	home_configuration = [0,0,0,0,0,0,0]
+	for i in range(1,8):
+		result_p = p.resetJointState(kukaID_p, i, home_configuration[i-1], 
+															physicsClientId=planningServer)
+		result_e = p.resetJointState(kukaID_e, i, home_configuration[i-1], 
+															physicsClientId=executingServer)
 ######################################################################
 	if sys.argv[2] == "1":
 		path = shelf_path + "/scenario1"
@@ -394,12 +485,12 @@ if sys.argv[1] == "shelf":
 		Objects[8] = [8, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
 			"tissueBox", "normal", 1.5, [-0.2, 0.2, 0.085+shelfbase_dim[2]], 
 											[0.0, 0.0, -math.pi/1.2], [0.03, 0.03, 0.24], nHypo]
-		Objects[9] = [9, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
+		Objects[9] = [9, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
+			"lightbulb", "phantom", 1.5, [0.14, 0.18, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
+											[0.0, 0.0, math.pi/6.0], [0.032, 0.035, 0.06], nHypo]
+		Objects[10] = [10, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
 			"brush", "invisible", 1, [0.07, -0.32, 0.03+shelfbase_dim[2]], 
 										[0.0, 0.0, -math.pi / 3.1], [0.028, 0.02, 0.2], 1]
-		Objects[10] = [10, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
-			"lightbulb", "phantom", 1.5, [0.14, 0.18, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
-													[0.0, 0.0, math.pi/6.0], [0.032, 0.035, 0.06], nHypo]
 		# pick goal offset
 		goalPos_offset = [-0.12, 0.0, 0.0]
 		goalEuler = [0.0, math.pi/2, 0.0]
@@ -412,22 +503,32 @@ if sys.argv[1] == "shelf":
 
 
 f_label = open(path + "/" + sys.argv[1] + sys.argv[2] + "_labelWeights.txt", "w")
-### Collect meshes for all the hypothesis ###
+### Collect meshes for all the hypothesis, and one for all the true poses ###
 meshSet = []
+truePoses = []
 labelIdx = 0
 for i in xrange(len(Objects)):
 	meshSet += utils.createMesh(f_label, labelIdx, Objects[i][0], Objects[i][1], Objects[i][2], 
-		Objects[i][3], Objects[i][4], Objects[i][5], Objects[i][6], Objects[i][7], Objects[i][8])
+								Objects[i][3], Objects[i][4], Objects[i][5], Objects[i][6], 
+											Objects[i][7], Objects[i][8], planningServer, True)
+	truePoses += utils.createMesh(f_label, labelIdx, Objects[i][0], Objects[i][1], Objects[i][2], 
+								Objects[i][3], Objects[i][4], Objects[i][5], Objects[i][6], 
+											Objects[i][7], 1, executingServer, False)
 	labelIdx = len(meshSet)
+
+print "------------------all hypotheses-----------------------"
+utils.printPoses(meshSet)
+print "------------------true poses-----------------------"
+utils.printPoses(truePoses)
 f_label.close()
 
-
+'''
 ###### specify q_start and q_goal first ######
 # q_start
 q_start = home_configuration
 # q_goal
 for i in range(1,8):
-	result = p.resetJointState(kukaID,i,home_configuration[i-1])
+	result = p.resetJointState(kukaID_p, i, home_configuration[i-1], physicsClientId=planningServer)
 goal_pose_pos = []
 for i in xrange(len(goalPos_offset)):
 	# The goal object always has the index 0 (zero)
@@ -436,21 +537,21 @@ goal_pose_quat = utils.euler_to_quaternion(goalEuler[0], goalEuler[1], goalEuler
 
 goalCollision = True
 while goalCollision:
-	q_goal = p.calculateInverseKinematics(kukaID, kuka_ee_idx, goal_pose_pos, 
-													goal_pose_quat, ll, ul, jr)
+	q_goal = p.calculateInverseKinematics(kukaID_p, kuka_ee_idx, goal_pose_pos, 
+										goal_pose_quat, ll, ul, jr, physicsClientId=planningServer)
 	for j in range(1,8):
-		result = p.resetJointState(kukaID,j,q_goal[j-1])
-	p.stepSimulation()
+		result = p.resetJointState(kukaID_p, j, q_goal[j-1], physicsClientId=planningServer)
+	p.stepSimulation(planningServer)
 	# check collision for both static geometry & objects
-	isCollision1 = utils.collisionCheck_staticG(kukaID, static_geometries)
+	isCollision1 = utils.collisionCheck_staticG(kukaID_p, static_geometries_planning, planningServer)
 	if isCollision1:
 		pass
 	else:
-		isCollision2 = utils.collisionCheck_hypos(kukaID, meshSet)
+		isCollision2 = utils.collisionCheck_hypos(kukaID_p, meshSet, planningServer)
 		if not isCollision2:
 			goalCollision = False
 	print "collision for the goal? " + " " + str(goalCollision)
-	time.sleep(0.5)
+	time.sleep(0.2)
 	# if goalCollision:
 	# 	## put the kuka arm back to home configuration for next IK solution
 	# 	for i in range(1,8):
@@ -469,12 +570,13 @@ while temp_counter < nsamples:
 	temp_x = float(format(random.uniform(x_ll, x_ul), '.2f'))
 	temp_y = float(format(random.uniform(y_ll, y_ul), '.2f'))
 	temp_z = float(format(random.uniform(z_ll, z_ul), '.2f'))
-	ikSolution = p.calculateInverseKinematics(kukaID, kuka_ee_idx, [temp_x, temp_y, temp_z], ll, ul, jr)
+	ikSolution = p.calculateInverseKinematics(kukaID_p, kuka_ee_idx, 
+					[temp_x, temp_y, temp_z], ll, ul, jr, physicsClientId=planningServer)
 	for j in range(1,8):
-		result = p.resetJointState(kukaID,j,ikSolution[j-1])
-	p.stepSimulation()
+		result = p.resetJointState(kukaID_p, j, ikSolution[j-1], physicsClientId=planningServer)
+	p.stepSimulation(planningServer)
 	#time.sleep(0.05)
-	isCollision = utils.collisionCheck_staticG(kukaID, static_geometries)
+	isCollision = utils.collisionCheck_staticG(kukaID_p, static_geometries_planning, planningServer)
 	if isCollision == False:
 		nodes.append(ikSolution)
 		## write it into a roadmap file
@@ -516,14 +618,14 @@ for i in xrange(len(nodes)):
 		# Otherwise, check the edge validity (in terms of collision with static geometry)
 		# between the query node and the the current neighbor
 		neighbor = nodes[knn[1][j]]
-		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID, 
-															static_geometries)
+		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID_p, 
+														static_geometries_planning, planningServer)
 		if isEdgeValid:
 			# write this edge information with their cost and labels into the txt file
 			nedge += 1
 			# It is a valid edge in terms of static geometry
 			# Let's check the collision status for each hypothesis for the purpose of labeling
-			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID, meshSet)
+			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID_p, meshSet, planningServer)
 			f1.write(str(i) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")
 			for tl in temp_labels:
 				f1.write(str(tl) + " ")
@@ -561,15 +663,15 @@ for j in xrange(len(knn[1])):
 	else:
 		# check collision
 		neighbor = nodes[knn[1][j]]
-		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID, 
-															static_geometries)
+		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID_p, 
+													static_geometries_planning, planningServer)
 		if isEdgeValid:
 			# write this edge information with their cost and labels into the txt file
 			nedge += 1
 			connectTimes += 1
 			# It is a valid edge in terms of static geometry
 			# Let's check the collision status for each hypothesis for the purpose of labeling
-			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID, meshSet)			
+			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID_p, meshSet, planningServer)			
 			f1.write(str(temp_counter-1) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")
 			for tl in temp_labels:
 				f1.write(str(tl) + " ")
@@ -599,15 +701,15 @@ for j in xrange(len(knn[1])):
 	else:
 		# check collision
 		neighbor = nodes[knn[1][j]]
-		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID, 
-															static_geometries)
+		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID_p, 
+													static_geometries_planning, planningServer)
 		if isEdgeValid:
 			# write this edge information with their cost and labels into the txt file
 			nedge += 1
 			connectTimes += 1
 			# It is a valid edge in terms of static geometry
 			# Let's check the collision status for each hypothesis for the purpose of labeling
-			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID, meshSet)		
+			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID_p, meshSet, planningServer)		
 			f1.write(str(temp_counter-1) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")
 			for tl in temp_labels:
 				f1.write(str(tl) + " ")
@@ -620,30 +722,63 @@ for j in xrange(len(knn[1])):
 				break
 
 f1.close()
-print (len(nodes))
-
+print len(nodes)
+'''
 ##########################################################################################
 # Call planning algorithm
+print "start planning..."
 executeFile = "../robust_planning_20_icra/main" + " " + str(sys.argv[1]) + " " + str(sys.argv[2])
 subprocess.call(executeFile, shell=True)
 
 
-
-# Let's visualize the scene and execute the path 
-p.connect(p.GUI)
-p.setAdditionalSearchPath(pybullet_data.getDataPath())
-## load the Kuka robot arm ##
-p.loadURDF("kuka.urdf", useFixedBase=True)
-## load the static geometries
-
-
-'''
+# Let's execute the path
 ## execute the trajectory in the scene without the objects
-traj_file = path + "/" + sys.argv[1] + sys.argv[2] + "_traj.txt"
-utils.executeTrajectory(traj_file, kukaID)
-'''
+astar_traj_file = path + "/" + sys.argv[1] + sys.argv[2] + "_Astartraj.txt"
+utils.executeTrajectory(astar_traj_file, kukaID_e, executingServer)
+
+time.sleep(4)
+## Put the kuka back to its home configuration
+for i in range(1,8):
+	result = p.resetJointState(kukaID_e, i, home_configuration[i-1], physicsClientId=executingServer)
+
+mcrg_traj_file = path + "/" + sys.argv[1] + sys.argv[2] + "_MCRtraj.txt"
+utils.executeTrajectory(mcrg_traj_file, kukaID_e, executingServer)
 
 time.sleep(10000)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
