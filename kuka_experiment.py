@@ -14,8 +14,8 @@ import subprocess
 from scipy import spatial
 import cPickle as pickle
 
-planningServer = p.connect(p.DIRECT)
-executingServer = p.connect(p.GUI)
+planningServer = p.connect(p.GUI)
+executingServer = p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 kuka_ee_idx = 8
 static_geometries_planning = []
@@ -39,7 +39,7 @@ rp = [0,0,0,-np.pi/2,0,np.pi/2,0]
 # for i in range(p.getNumJoints(kukaID)):
 # 	print(p.getJointInfo(kukaID,i))
 
-nHypo = 1
+nHypo = 3
 
 # generate the static geometries
 ######################################################################
@@ -101,22 +101,23 @@ if sys.argv[1] == "table":
 		Objects = dict()
 		# meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 		Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-			"target", 2, [0.2, -0.21, 0.07+table_dim[2]], [0.0, 0.0, 0.0], [0.05, 0.05], 1]
+			"target", 2, [0.2, -0.21, 0.07+table_dim[2]], [math.pi/2.5, math.pi/5.6, math.pi/3.4], 
+																		[0.05, 0.05, 1.2], nHypo]
 		Objects[1] = [1, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
 		"crayola", "normal", 2, [0.15, 0.0, 0.1+table_dim[2]], 
-												[math.pi/2, 0.0, 0.0], [0.04, 0.03, 0.18], nHypo]
+												[math.pi/2, 0.0, 0.0], [0.04, 0.03, 0.69], nHypo]
 		Objects[2] = [2, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
 			"normal", 2, [-0.15, -0.33, 0.2+table_dim[2]], 
-												[math.pi/2, 0.0, 0.0], [0.05, 0.04, 0.3], nHypo]
+												[math.pi/2, 0.0, 0.0], [0.05, 0.04, 0.36], nHypo]
 		Objects[3] = [3, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
 		"tissueBox", "normal", 1.5, [0.05, -0.42, 0.1+table_dim[2]], 
-										[0.0, math.pi/2, -math.pi/5], [0.03, 0.03, 0.24], nHypo]
+										[0.0, -math.pi/2, -math.pi/5], [0.03, 0.03, 0.34], nHypo]
 		Objects[4] = [4, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
 			"normal", 2, [-0.12, 0.13, 0.05+table_dim[2]], 
-										[math.pi/2, 0.0, math.pi/6.7], [0.03, 0.06, 0.01], nHypo]
+										[math.pi/2, 0.0, math.pi/6.7], [0.03, 0.06, 0.34], nHypo]
 		# pick goal offset												
-		goalPos_offset = [0.0, 0.0, 0.15]
-		goalEuler = [0.0, 0.0, 0.0] ## tabletop picking
+		goalPos_offset = [0.0, 0.0, 0.16]
+		goalEuler = [0.0, math.pi, 0.0] ## tabletop picking
 		x_ll = kukaBasePosition[0] - 0.2
 		x_ul = tablePosition[0] + table_dim[0]/2
 		y_ll = -table_dim[1]/2
@@ -140,10 +141,11 @@ if sys.argv[1] == "table":
 		Objects = dict()
 		# meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 		Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-			"target", 2, [0.13, -0.02, 0.07+table_dim[2]], [0.0, 0.0, 0.0], [0.05, 0.05], 1]
+			"target", 2, [0.13, -0.02, 0.07+table_dim[2]], [math.pi/5.8, math.pi/0.4, math.pi/2.3], 
+																			[0.05, 0.05, 1.3], nHypo]
 		Objects[1] = [1, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
 					"tissueBox", "normal", 1.5, [0.05, 0.16, 0.1+table_dim[2]], 
-										[0.0, math.pi/2, -math.pi/3], [0.03, 0.03, 0.24], nHypo]
+										[0.0, -math.pi/2, -math.pi/3], [0.03, 0.03, 0.24], nHypo]
 		Objects[2] = [2, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
 					"crayola", "normal", 2, [0.15, -0.15, 0.1+table_dim[2]], 
 										[math.pi/2, 0.0, -math.pi/4], [0.04, 0.03, 0.18], nHypo]
@@ -161,10 +163,10 @@ if sys.argv[1] == "table":
 											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
 		Objects[6] = [6, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
 				"lightbulb", "phantom", 1.5, [-0.2, 0.36, 0.05+table_dim[2]], 
-											[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
+									[0.0, -math.pi, 9*math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
 		# pick goal offset
-		goalPos_offset = [-0.03, 0.0, 0.127]
-		goalEuler = [0.0, 0.0, 0.0] ## tabletop picking
+		goalPos_offset = [0.0, 0.0, 0.16]
+		goalEuler = [0.0, math.pi, 0.0] ## tabletop picking
 		x_ll = kukaBasePosition[0] - 0.2
 		x_ul = tablePosition[0] + table_dim[0]/2
 		y_ll = -table_dim[1]/2
@@ -187,40 +189,41 @@ if sys.argv[1] == "table":
 		Objects = dict()
 		# meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 		Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-				"target", 2, [0.16, 0.23, 0.05+table_dim[2]], [0.0, 0.0, 0.0], [0.05, 0.05], 1]
+				"target", 2, [0.16, 0.23, 0.05+table_dim[2]], 
+						[2*math.pi/7.0, math.pi/4.8, 7*math.pi/6.2], [0.05, 0.05, 1.04], nHypo]
 		Objects[1] = [1, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
 				"normal", 2, [0.26, 0.53, 0.05+table_dim[2]], [math.pi/2, 0.0, 
 														math.pi/4.3], [0.03, 0.06, 0.01], nHypo]
 		Objects[2] = [2, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
 				"normal", 2, [-0.09, 0.31, 0.2+table_dim[2]], [math.pi/2, 0.0, 
-														math.pi/2.6], [0.05, 0.04, 0.3], nHypo]
+														math.pi/2.6], [0.05, 0.04, 0.67], nHypo]
 		Objects[3] = [3, "/mesh/ticonderoga_12_pencils/ticonderoga_12_pencils.obj", "pencils", 
 				"normal", 1, [0.16, -0.08, 0.01+table_dim[2]], 
-									[0.0, math.pi/2, -math.pi/8.8], [0.05, 0.04, 0.25], nHypo]
+									[0.0, -math.pi/2, -math.pi/8.8], [0.05, 0.04, 0.32], nHypo]
 		# Objects[5] = [5, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", 
 		# 		"coffeeJar", "normal", 2, [-0.2, -0.09, 0.12+table_dim[2]], 
 		# 								[math.pi/2, 0.0, -math.pi/3.9], [0.026, 0.01, 0.24], nHypo]
 		Objects[4] = [4, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
 				"glucoseBottle", "normal", 1.5, [0.26, 0.13, 0.1+table_dim[2]], 
-											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
+											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.42], nHypo]
 		Objects[5] = [5, "/mesh/crayola_24_ct/crayola_24_ct.obj", 
 				"crayola", "normal", 2, [-0.09, 0.16, 0.09+table_dim[2]], 
 											[math.pi/2, 0.0, math.pi/3], [0.04, 0.03, 0.18], nHypo]
 		Objects[6] = [6, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
 				"tissueBox", "normal", 1.5, [0.0, 0.0, 0.1+table_dim[2]], 
-											[0.0, math.pi/2, -math.pi/3], [0.03, 0.03, 0.24], nHypo]
+										[0.0, -math.pi/2, -math.pi/3], [0.03, 0.03, 0.24], nHypo]
 		Objects[7] = [7, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
 				"brush", "normal", 1, [-0.07, -0.33, 0.02+table_dim[2]], 
 											[0.0, 0.0, -math.pi / 4.5], [0.028, 0.02, 0.2], nHypo]
 		Objects[8] = [8, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
 				"lightbulb", "phantom", 1.5, [0.15, 0.45, 0.05+table_dim[2]], 
-											[0.0, 0.0, math.pi/10.0], [0.032, 0.035, 0.06], nHypo]
+										[0.0, math.pi, 4*math.pi/6.7], [0.032, 0.035, 0.06], nHypo]
 		Objects[9] = [9, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
 				"glue", "invisible", 1.5, [0.03, 0.38, 0.11+table_dim[2]], 
 									[math.pi / 2, 0.0, 67*math.pi/180], [0.07, 0.07, 0.5], 1]
 		# pick goal offset
-		goalPos_offset = [-0.03, 0.0, 0.14]
-		goalEuler = [0.0, 0.0, 0.0] ## tabletop picking
+		goalPos_offset = [0.0, 0.0, 0.16]
+		goalEuler = [0.0, math.pi, 0.0] ## tabletop picking
 		x_ll = kukaBasePosition[0] - 0.2
 		x_ul = tablePosition[0] + table_dim[0]/2
 		y_ll = -table_dim[1]/2
@@ -378,9 +381,9 @@ if sys.argv[1] == "shelf":
 	print "shelf back: " + str(shelfbackM_e)
 	#reset the base of Kuka
 	kukaBasePosition = [standingBasePosition[0], standingBasePosition[1], standingBase_dim[2]+0.005]
-	kukaBaseOrientation = utils.euler_to_quaternion(-math.pi/2, math.pi, 0.0)
-	# kukaBaseOrientation = utils.euler_to_quaternion(math.pi/2, math.pi, 0.0)
-	# kukaBaseOrientation = utils.euler_to_quaternion(0.0, 0.0, 0.0)
+	# kukaBaseOrientation = p.getQuaternionFromEuler([-math.pi/2, math.pi, 0.0])
+	# kukaBaseOrientation = p.getQuaternionFromEuler([math.pi/2, math.pi, 0.0])
+	kukaBaseOrientation = p.getQuaternionFromEuler([0.0, 0.0, 0.0])
 	p.resetBasePositionAndOrientation(kukaID_p, kukaBasePosition, 
 									kukaBaseOrientation, physicsClientId=planningServer)
 	p.resetBasePositionAndOrientation(kukaID_e, kukaBasePosition, 
@@ -409,31 +412,31 @@ if sys.argv[1] == "shelf":
 		# meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 		Objects[0] = [0, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
 			"target", 1.7, [0.04, 0.33, 0.17+middleflatPosition[2]+flat_dim[2]/2], 
-												[math.pi/2, 0.0, 0.0], [0.05, 0.04, 0.3], 1]
+												[math.pi/2, 0.0, 0.0], [0.05, 0.04, 0.3], nHypo]
 		Objects[1] = [1, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
 			"lightbulb", "normal", 1.5, [-0.12, 0.21, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
-													[math.pi/2, 0.0, math.pi/5.7], [0.032, 0.035, 0.06], nHypo]
+										[math.pi/2, 0.0, math.pi/5.7], [0.032, 0.035, 0.06], nHypo]
 		Objects[2] = [2, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
 			"glue", "normal", 1.5, [-0.05, 0.51, 0.09+middleflatPosition[2]+flat_dim[2]/2], 
-										[math.pi / 2, 0.0, 25*math.pi/180], [0.07, 0.07, 0.5], nHypo]
+										[math.pi / 2, 0.0, 25*math.pi/180], [0.07, 0.02, 0.5], nHypo]
 		Objects[3] = [3, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
-			"tissueBox", "normal", 1.5, [-0.2, -0.31, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
-												[0.0, 0.0, -math.pi/1.2], [0.03, 0.03, 0.24], nHypo]
+			"tissueBox", "normal", 1.5, [-0.2, -0.31, 0.06+middleflatPosition[2]+flat_dim[2]/2], 
+												[0.0, 0.0, -math.pi/1.2], [0.03, 0.03, 0.45], nHypo]
 		Objects[4] = [4, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
 			"normal", 2, [0.1, 0.24, 0.05+shelfbase_dim[2]], 
 											[math.pi/2, 0.0, math.pi/4.3], [0.03, 0.06, 0.01], nHypo]
 		Objects[5] = [5, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
 			"normal", 2, [-0.2, 0.36, 0.07+shelfbase_dim[2]], 
-														[0.0, 0.0, 0.0], [0.05, 0.05], nHypo]
+							[3*math.pi/5.5, 7*math.pi/6.2, math.pi/1.9], [0.05, 0.05, 0.57], nHypo]
 		Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
 			"glucoseBottle", "normal", 1.5, [-0.23, -0.43, 0.1+shelfbase_dim[2]], 
-											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
+											[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.21], nHypo]
 		Objects[7] = [7, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
 			"brush", "normal", 1, [0.07, -0.32, 0.02+shelfbase_dim[2]], 
-											[0.0, 0.0, -math.pi / 3.1], [0.028, 0.02, 0.2], nHypo]
+											[0.0, 0.0, -math.pi/3.1], [0.028, 0.02, 0.2], nHypo]
 		# pick goal offset
 		goalPos_offset = [-0.12, 0.0, 0.0]
-		goalEuler = [0.0, math.pi/2, 0.0]
+		goalEuler = [math.pi/2, 0.0, 0.0] ## side picking
 		x_ll = kukaBasePosition[0] - standingBase_dim[0] / 2 - 0.2
 		x_ul = shelfbackPosition[0] - shelfback_dim[0] / 2
 		y_ll = middleflankPosition[1] + flank_dim[1] / 2
@@ -457,22 +460,22 @@ if sys.argv[1] == "shelf":
 		# objectIndex, meshfile, meshType, objectRole, scale, true_pos, true_angles, uncertainty, nHypo
 		Objects[0] = [0, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
 			"target", 1.7, [0.15, 0.45, 0.17+middleflatPosition[2]+flat_dim[2]/2], 
-									[math.pi/2, 0.0, -math.pi/5.2], [0.05, 0.04, 0.3], 1]
+									[math.pi/2, 0.0, -math.pi/5.2], [0.05, 0.04, 0.32], nHypo]
 		Objects[1] = [1, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
 			"normal", 2, [-0.13, 0.14, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
-									[math.pi/2, 0.0, math.pi/2.9], [0.03, 0.06, 0.01], nHypo]
+									[math.pi/2, 0.0, math.pi/2.9], [0.03, 0.03, 0.01], nHypo]
 		Objects[2] = [2, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-			"normal", 2, [0.15, -0.46, 0.07+shelfbase_dim[2]], 
-														[0.0, 0.0, 0.0], [0.05, 0.05], nHypo]
+			"normal", 2, [0.15, -0.39, 0.07+shelfbase_dim[2]], 
+								[3*math.pi/4.0, 2.5*math.pi, math.pi/6.2], [0.04, 0.02, 1.2], nHypo]
 		Objects[3] = [3, "/mesh/ticonderoga_12_pencils/ticonderoga_12_pencils.obj", "pencils", 
 			"normal", 2, [0.05, -0.26, 0.01+middleflatPosition[2]+flat_dim[2]/2], 
-									[0.0, math.pi/2, -math.pi/3.9], [0.05, 0.04, 0.25], nHypo]
+									[0.0, -math.pi/2, -math.pi/3.9], [0.05, 0.04, 0.25], nHypo]
 		Objects[4] = [4, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", 
 			"glue", "normal", 1.5, [-0.19, -0.48, 0.11+middleflatPosition[2]+flat_dim[2]/2], 
 									[math.pi / 2, 0.0, 25*math.pi/180], [0.07, 0.07, 0.5], nHypo]
 		Objects[5] = [5, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", 
 			"coffeeJar", "normal", 2, [-0.2, -0.24, 0.12+shelfbase_dim[2]], 
-									[math.pi/2, 0.0, -math.pi/3.9], [0.026, 0.01, 0.24], nHypo]
+									[math.pi/2, 0.0, -math.pi/3.9], [0.024, 0.017, 0.24], nHypo]
 		Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", 
 			"glucoseBottle", "normal", 1.5, [-0.08, 0.3, 0.1+middleflatPosition[2]+flat_dim[2]/2], 
 										[math.pi / 2, 0.0, math.pi], [0.04, 0.04, 0.12], nHypo]
@@ -483,17 +486,17 @@ if sys.argv[1] == "shelf":
 			"crayola", "normal", 2, [-0.3, 0.27, 0.07+middleflatPosition[2]+flat_dim[2]/2], 
 											[0.0, 0.0, -math.pi/6.1], [0.04, 0.03, 0.18], nHypo]
 		Objects[8] = [8, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", 
-			"tissueBox", "normal", 1.5, [-0.2, 0.2, 0.085+shelfbase_dim[2]], 
-											[0.0, 0.0, -math.pi/1.2], [0.03, 0.03, 0.24], nHypo]
+			"tissueBox", "normal", 1.5, [-0.2, 0.34, 0.085+shelfbase_dim[2]], 
+											[0.0, 0.0, -math.pi/1.2], [0.03, 0.03, 0.54], nHypo]
 		Objects[9] = [9, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", 
 			"lightbulb", "phantom", 1.5, [0.14, 0.18, 0.05+middleflatPosition[2]+flat_dim[2]/2], 
 											[0.0, 0.0, math.pi/6.0], [0.032, 0.035, 0.06], nHypo]
 		Objects[10] = [10, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", 
-			"brush", "invisible", 1, [0.07, -0.32, 0.03+shelfbase_dim[2]], 
+			"brush", "invisible", 1, [0.09, -0.21, 0.03+shelfbase_dim[2]], 
 										[0.0, 0.0, -math.pi / 3.1], [0.028, 0.02, 0.2], 1]
 		# pick goal offset
 		goalPos_offset = [-0.12, 0.0, 0.0]
-		goalEuler = [0.0, math.pi/2, 0.0]
+		goalEuler = [math.pi/2, 0.0, 0.0] ## side picking
 		x_ll = kukaBasePosition[0] - standingBase_dim[0] / 2 - 0.2
 		x_ul = shelfbackPosition[0] - shelfback_dim[0] / 2
 		y_ll = middleflankPosition[1] + flank_dim[1] / 2
@@ -522,47 +525,96 @@ print "------------------true poses-----------------------"
 utils.printPoses(truePoses)
 f_label.close()
 
-'''
-###### specify q_start and q_goal first ######
-# q_start
+## count the number of objects in the planning scene
+nObjectInPlanning = 0
+for i in xrange(len(Objects)):
+	if Objects[i][3] != "invisible":
+		nObjectInPlanning += 1
+print "Number of Objects in the planning scene: " + str(nObjectInPlanning)
+
+
+###### specify q_start and set of q_goal first ######
+## q_start ##
 q_start = home_configuration
-# q_goal
+## goal set (#target hypos * nGoalPerTargetPose) ##
+## set home configuration
 for i in range(1,8):
 	result = p.resetJointState(kukaID_p, i, home_configuration[i-1], physicsClientId=planningServer)
-goal_pose_pos = []
-for i in xrange(len(goalPos_offset)):
-	# The goal object always has the index 0 (zero)
-	goal_pose_pos.append(Objects[0][5][i] + goalPos_offset[i])
-goal_pose_quat = utils.euler_to_quaternion(goalEuler[0], goalEuler[1], goalEuler[2])
 
-goalCollision = True
-while goalCollision:
-	q_goal = p.calculateInverseKinematics(kukaID_p, kuka_ee_idx, goal_pose_pos, 
-										goal_pose_quat, ll, ul, jr, physicsClientId=planningServer)
-	for j in range(1,8):
-		result = p.resetJointState(kukaID_p, j, q_goal[j-1], physicsClientId=planningServer)
-	p.stepSimulation(planningServer)
-	# check collision for both static geometry & objects
-	isCollision1 = utils.collisionCheck_staticG(kukaID_p, static_geometries_planning, planningServer)
-	if isCollision1:
-		pass
-	else:
-		isCollision2 = utils.collisionCheck_hypos(kukaID_p, meshSet, planningServer)
-		if not isCollision2:
-			goalCollision = False
-	print "collision for the goal? " + " " + str(goalCollision)
-	time.sleep(0.2)
-	# if goalCollision:
-	# 	## put the kuka arm back to home configuration for next IK solution
-	# 	for i in range(1,8):
-	# 		result = p.resetJointState(kukaID,i,home_configuration[i-1])
-##############################################################################
+goalSet = []
+goalHypo = []
+goalSurvivalThreshold = 0.5
+MaxGoalsPerPose = 5
+MaxTrialsPerPose = 7
+MaxTrialsPerEE = 7
+## for each target hypothesis ##
+for hp in xrange(Objects[0][8]):
+	print "***********For Hypo " + str(hp) + "***************"
+	temp_trials_pose = 0
+	temp_ngoals = 0
+	while temp_ngoals < MaxGoalsPerPose and temp_trials_pose < MaxTrialsPerPose:
+		print "-----A new ee pose-----"
+		for i in range(1,8):
+			result = p.resetJointState(kukaID_p, i, home_configuration[i-1], 
+																	physicsClientId=planningServer)
+		## specify the position and quaternion of the goal pose based on the target hypothesis ##
+		goal_pose_pos = []
+		for i in xrange(len(goalPos_offset)):
+			goal_pose_pos.append(meshSet[hp].pos[i] + goalPos_offset[i])
+		temp_goal_pose_quat = p.getQuaternionFromEuler([goalEuler[0], goalEuler[1], 
+													goalEuler[2]+random.uniform(-math.pi, math.pi)])
+		goal_pose_quat = [temp_goal_pose_quat[0], temp_goal_pose_quat[1], 
+													temp_goal_pose_quat[3], temp_goal_pose_quat[2]]
+		temp_trials_ee = 0
+		while temp_ngoals < MaxGoalsPerPose and temp_trials_ee < MaxTrialsPerEE:
+			q_goal = p.calculateInverseKinematics(kukaID_p, kuka_ee_idx, goal_pose_pos, 
+										goal_pose_quat, ll, ul, jr, physicsClientId=planningServer)		
+			for j in range(1,8):
+				result = p.resetJointState(kukaID_p, j, q_goal[j-1], physicsClientId=planningServer)
+			p.stepSimulation(planningServer)
+			## check collision for static geometry
+			isCollision1 = utils.collisionCheck_staticG(kukaID_p, 
+													static_geometries_planning, planningServer)
+			if isCollision1:
+				print "static collision for the current IK..."
+				# raw_input("Press Enter to Continue")
+				temp_trials_ee += 2
+				continue
+			else:
+				## check collision condition with all hypos of objects
+				## (The opposite of the collision probability)
+				collidedHypos = utils.collision_with_hypos(kukaID_p, meshSet, planningServer)
+				print "Collide with Hypos: " + str(collidedHypos)
+				## compute the survivability
+				if hp in collidedHypos:
+					# the end effector collides with the pose it deems as the target pose
+					temp_survival = 0.0
+				else:
+					temp_survival = 1.0
+					collisionPerObj = [0.0] * (nObjectInPlanning - 1)
+					for ch in collidedHypos:
+						if ch not in range(0, Objects[0][8]):
+							collisionPerObj[meshSet[ch].objIndx] += meshSet[ch].prob
+					for cpobs in collisionPerObj:
+						temp_survival *= (1 - cpobs)
+				print "Survival: " + str(temp_survival)
+				# raw_input("Press Enter to Continue")
 
-
+				if temp_survival >= goalSurvivalThreshold:
+					## accept this goal
+					goalSet.append(q_goal)
+					goalHypo.append(hp)
+					temp_ngoals += 1
+				
+				temp_trials_ee += 1
+		
+		temp_trials_pose += 1
+###########################################################
+print goalHypo
 ##############start sampling##################
 f = open(path + "/" + sys.argv[1] + sys.argv[2] + "_samples.txt", "w")
 nodes = []
-nsamples = 20
+nsamples = 30
 temp_counter = 0
 
 while temp_counter < nsamples:
@@ -586,10 +638,6 @@ while temp_counter < nsamples:
 		temp_counter += 1
 print "finish the sampling stage"
 
-
-import time
-startTime = time.clock()
-
 ############ connect neighbors to build roadmaps #############
 connectivity = np.zeros((nsamples, nsamples))
 tree = spatial.KDTree(nodes)
@@ -604,6 +652,7 @@ nedge = 0
 # create a list to record the number of neighbors connected for each node
 # neighbors_counts = [0] * nsamples
 
+startTime = time.clock()
 # for each node
 for i in xrange(len(nodes)):
 	queryNode = nodes[i]
@@ -651,6 +700,7 @@ f.write(str(temp_counter) + " " + str(q_start[0]) + " " + str(q_start[1]) + " " 
 	+ str(q_start[2]) + " " + str(q_start[3]) + " " + str(q_start[4]) + " " + \
 	str(q_start[5]) + " " + str(q_start[6]) + "\n")
 temp_counter += 1
+
 ## connect the start to the roadmap
 tree = spatial.KDTree(nodes)
 queryNode = nodes[temp_counter-1]
@@ -681,48 +731,81 @@ for j in xrange(len(knn[1])):
 			if (connectTimes >= 3):
 				break
 
-## pass goal collision checker
-nodes.append(q_goal)
-f.write(str(temp_counter) + " " + str(q_goal[0]) + " " + str(q_goal[1]) + " " \
-	+ str(q_goal[2]) + " " + str(q_goal[3]) + " " + str(q_goal[4]) + " " + \
-	str(q_goal[5]) + " " + str(q_goal[6]))
-temp_counter += 1
+## Loop through goalSet
+for q_goal, hypo in zip(goalSet, goalHypo):
+	nodes.append(q_goal)
+	f.write(str(temp_counter) + " " + str(q_goal[0]) + " " + str(q_goal[1]) + " " \
+		+ str(q_goal[2]) + " " + str(q_goal[3]) + " " + str(q_goal[4]) + " " + \
+		str(q_goal[5]) + " " + str(q_goal[6]) + " " + str(hypo) + "\n")
+	temp_counter += 1
+	## connect the goal to the roadmap
+	tree = spatial.KDTree(nodes)
+	queryNode = nodes[temp_counter-1]
+	knn = tree.query(queryNode, k=nsamples, p=2)
+	# for each neighbor
+	connectTimes = 0
+	for j in xrange(len(knn[1])):
+		if knn[1][j] == (temp_counter - 1):
+			continue
+		else:
+			# check collision
+			neighbor = nodes[knn[1][j]]
+			isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID_p, 
+														static_geometries_planning, planningServer)
+			if isEdgeValid:
+				# write this edge information with their cost and labels into the txt file
+				nedge += 1
+				connectTimes += 1
+				# It is a valid edge in terms of static geometry
+				# Let's check the collision status for each hypothesis for the purpose of labeling	
+				temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID_p, 
+																		meshSet, planningServer)
+				f1.write(str(temp_counter-1) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")				
+				for tl in temp_labels:
+					f1.write(str(tl) + " ")
+				f1.write("\n")
+				print "successfully connecting the goal to the roadmap\n"
+				if (connectTimes >= 3):
+					break
+
 f.close()
-
-## connect the goal to the roadmap
-tree = spatial.KDTree(nodes)
-queryNode = nodes[temp_counter-1]
-knn = tree.query(queryNode, k=nsamples, p=2)
-# for each neighbor
-connectTimes = 0
-for j in xrange(len(knn[1])):
-	if knn[1][j] == (temp_counter - 1):
-		continue
-	else:
-		# check collision
-		neighbor = nodes[knn[1][j]]
-		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID_p, 
-													static_geometries_planning, planningServer)
-		if isEdgeValid:
-			# write this edge information with their cost and labels into the txt file
-			nedge += 1
-			connectTimes += 1
-			# It is a valid edge in terms of static geometry
-			# Let's check the collision status for each hypothesis for the purpose of labeling
-			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID_p, meshSet, planningServer)		
-			f1.write(str(temp_counter-1) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")
-			for tl in temp_labels:
-				f1.write(str(tl) + " ")
-			f1.write("\n")			
-			print "successfully connecting the goal to the roadmap\n"
-			# break # we just need to connect it, not necessarily to connect every neighbor
-		# else:
-		# 	print "The edge is not valid..." + str(j)
-			if (connectTimes >= 3):
-				break
-
 f1.close()
+
+# ## connect the goal to the roadmap
+# tree = spatial.KDTree(nodes)
+# queryNode = nodes[temp_counter-1]
+# knn = tree.query(queryNode, k=nsamples, p=2)
+# # for each neighbor
+# connectTimes = 0
+# for j in xrange(len(knn[1])):
+# 	if knn[1][j] == (temp_counter - 1):
+# 		continue
+# 	else:
+# 		# check collision
+# 		neighbor = nodes[knn[1][j]]
+# 		isEdgeValid = utils.checkEdgeValidity(queryNode, neighbor, kukaID_p, 
+# 													static_geometries_planning, planningServer)
+# 		if isEdgeValid:
+# 			# write this edge information with their cost and labels into the txt file
+# 			nedge += 1
+# 			connectTimes += 1
+# 			# It is a valid edge in terms of static geometry
+# 			# Let's check the collision status for each hypothesis for the purpose of labeling
+# 			temp_labels = utils.label_the_edge(queryNode, neighbor, kukaID_p, meshSet, planningServer)
+# 			f1.write(str(temp_counter-1) + " " + str(knn[1][j]) + " " + format(knn[0][j], '.4f') + " ")
+# 			for tl in temp_labels:
+# 				f1.write(str(tl) + " ")
+# 			f1.write("\n")			
+# 			print "successfully connecting the goal to the roadmap\n"
+# 			# break # we just need to connect it, not necessarily to connect every neighbor
+# 		# else:
+# 		# 	print "The edge is not valid..." + str(j)
+# 			if (connectTimes >= 3):
+# 				break
+
+# f1.close()
 print len(nodes)
+
 '''
 ##########################################################################################
 # Call planning algorithm
@@ -730,19 +813,21 @@ print "start planning..."
 executeFile = "../robust_planning_20_icra/main" + " " + str(sys.argv[1]) + " " + str(sys.argv[2])
 subprocess.call(executeFile, shell=True)
 
-
+raw_input("Press Enter to Continue")
 # Let's execute the path
 ## execute the trajectory in the scene without the objects
 astar_traj_file = path + "/" + sys.argv[1] + sys.argv[2] + "_Astartraj.txt"
 utils.executeTrajectory(astar_traj_file, kukaID_e, executingServer)
 
-time.sleep(4)
+raw_input("Press Enter to Continue")
 ## Put the kuka back to its home configuration
 for i in range(1,8):
 	result = p.resetJointState(kukaID_e, i, home_configuration[i-1], physicsClientId=executingServer)
 
+raw_input("Press Enter to Continue")
 mcrg_traj_file = path + "/" + sys.argv[1] + sys.argv[2] + "_MCRtraj.txt"
 utils.executeTrajectory(mcrg_traj_file, kukaID_e, executingServer)
+'''
 
 time.sleep(10000)
 
@@ -837,4 +922,44 @@ for line in f:
 		p.stepSimulation()
 		time.sleep(0.1)
 
+'''
+
+
+'''
+###### specify q_start and q_goal first ######
+## q_start ##
+q_start = home_configuration
+## goal ##
+## set home configuration
+for i in range(1,8):
+	result = p.resetJointState(kukaID_p, i, home_configuration[i-1], physicsClientId=planningServer)
+goal_pose_pos = []
+
+for i in xrange(len(goalPos_offset)):
+	# The goal object always has the index 0 (zero)
+	goal_pose_pos.append(Objects[0][5][i] + goalPos_offset[i])
+goal_pose_quat = utils.euler_to_quaternion(goalEuler[0], goalEuler[1], goalEuler[2])
+
+goalCollision = True
+while goalCollision:
+	q_goal = p.calculateInverseKinematics(kukaID_p, kuka_ee_idx, goal_pose_pos, 
+										goal_pose_quat, ll, ul, jr, physicsClientId=planningServer)
+	for j in range(1,8):
+		result = p.resetJointState(kukaID_p, j, q_goal[j-1], physicsClientId=planningServer)
+	p.stepSimulation(planningServer)
+	# check collision for both static geometry & objects
+	isCollision1 = utils.collisionCheck_staticG(kukaID_p, static_geometries_planning, planningServer)
+	if isCollision1:
+		pass
+	else:
+		isCollision2 = utils.collisionCheck_hypos(kukaID_p, meshSet, planningServer)
+		if not isCollision2:
+			goalCollision = False
+	print "collision for the goal? " + " " + str(goalCollision)
+	time.sleep(0.2)
+	# if goalCollision:
+	# 	## put the kuka arm back to home configuration for next IK solution
+	# 	for i in range(1,8):
+	# 		result = p.resetJointState(kukaID,i,home_configuration[i-1])
+##############################################################################
 '''

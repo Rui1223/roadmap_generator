@@ -19,11 +19,11 @@ class Mesh:
 	def setProb(self, prob):
 		self.prob = prob
 
-
-## roll (X), pitch (Y), yaw(Z)
+'''
+## yaw(Z), pitch (Y), roll(X) 
 ## This function come from online wiki link
 ## https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-def euler_to_quaternion(roll, pitch, yaw):
+def euler_to_quaternion(yaw, pitch, roll):
     cy = math.cos(yaw * 0.5)
     sy = math.sin(yaw * 0.5)
     cp = math.cos(pitch * 0.5)
@@ -36,7 +36,10 @@ def euler_to_quaternion(roll, pitch, yaw):
     qy = round(sy * cp * sr + cy * sp * cr, 4)
     qz = round(sy * cp * cr - cy * sp * sr, 4)
 
-    return [qw, qx, qy, qz]
+    return [qx, qy, qz, qw]
+## Pybullet provides a built-in function getQuaternionFromEuler() which
+## follows a new rule [Y, Xnew, Znew] and return the quaternion in format [x,y,z,w]
+'''
 
 def comp_prob(pos, temp_pos, angles, temp_zangle):
 	## paramter tunning for mimicing sensors
@@ -71,16 +74,17 @@ def createMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale,
 	_v = p.createVisualShape(shapeType=p.GEOM_MESH,
 		fileName=meshfile, meshScale=[scale, scale, scale], physicsClientId=clientId)
 
-	quat = euler_to_quaternion(angles[2], angles[1], angles[0])
+	# quat = euler_to_quaternion(angles[2], angles[1], angles[0])
+	quat = p.getQuaternionFromEuler([angles[0], angles[1], angles[2]])
 
-	# first put the true pose of the objects into the meshes
+	## first put the true pose of the objects into the meshes
 	_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
 						basePosition=pos,baseOrientation=quat, physicsClientId=clientId)
 	meshes.append(Mesh(_m, meshType, objIndx, labelIdx, pos, quat, 1, objectRole))
 
-	# for each hypothesis other than the true pose
+	## for each hypothesis other than the true pose
 	for h in xrange(1, nhypo):
-		# generate new pos and new quat according to uncertainty
+		## generate new pos and new quat according to uncertainty
 		temp_px = round(float(np.random.normal(pos[0], uncertainty[0])), 4)
 		temp_py = round(float(np.random.normal(pos[1], uncertainty[1])), 4)
 		temp_pos = [temp_px, temp_py, pos[2]]
@@ -89,19 +93,20 @@ def createMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale,
 
 		if len(uncertainty) == 3:
 			temp_zangle = float(np.random.normal(angles[2], uncertainty[2]))
-			temp_quat = euler_to_quaternion(temp_zangle, angles[1], angles[0])
+			# temp_quat = euler_to_quaternion(temp_zangle, angles[1], angles[0])
+			temp_quat = p.getQuaternionFromEuler([angles[0], angles[1], temp_zangle])
 
 
 
-		# compute the unnormalized probability of this hypothesis
+		## compute the unnormalized probability of this hypothesis
 		temp_prob = comp_prob(pos, temp_pos, angles, temp_zangle)
-		# create the mesh and save it into meshes
+		## create the mesh and save it into meshes
 		_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
 						basePosition=temp_pos,baseOrientation=temp_quat, physicsClientId=clientId)
 		meshes.append(Mesh(_m, meshType, objIndx, labelIdx+h, temp_pos, temp_quat, temp_prob, objectRole))
 
 
-	# last step: normalize the probability
+	## last step: normalize the probability
 	temp_probs = []
 	for mesh in meshes:
 		temp_probs.append(mesh.prob)
@@ -126,7 +131,7 @@ def printPoses(meshes):
 def collisionCheck_staticG(kukaID, static_geometries, clientId):
 	isCollision = False
 	# counter = 1
-	# loop through all static geometries
+	## loop through all static geometries
 	for g in static_geometries:
 		contacts = p.getContactPoints(kukaID, g, physicsClientId=clientId)
 		if len(contacts) != 0:
@@ -141,19 +146,32 @@ def collisionCheck_staticG(kukaID, static_geometries, clientId):
 
 def collisionCheck_hypos(kukaID, meshSet, clientId):
 	isCollision = False
-	# loop through meshes of each hypothesis
+	## loop through meshes of each hypothesis
 	for m in meshSet:
 		if m.objectRole != "invisible":
 			contacts = p.getContactPoints(kukaID, m.m, physicsClientId=clientId)
 			if len(contacts) != 0:
 				isCollision = True
-				# print "object collision? " + "\t" + m.meshType
+				## print "object collision? " + "\t" + m.meshType
 				break
-	# print "__________________________________________"
+	## print "__________________________________________"
 	return isCollision
 
+def collision_with_hypos(kukaID, meshSet, clientId):
+	collidedHypos = []
+	## loop through meshes of each hypothesis
+	for m in meshSet:
+		if m.objectRole != "invisible":
+			contacts = p.getContactPoints(kukaID, m.m, physicsClientId=clientId)
+			if len(contacts) != 0:
+				## add the index of that hypo
+				collidedHypos.append(m.hypoIndx)
+
+	return collidedHypos
+
+
 def checkEdgeValidity(n1, n2, kukaID, static_geometries, clientId):
-	step = 3 * math.pi / 180
+	step = 5 * math.pi / 180
 	nseg = int(math.ceil(max(math.fabs(n1[0]-n2[0]), math.fabs(n1[1]-n2[1]), 
 			math.fabs(n1[2]-n2[2]), math.fabs(n1[3]-n2[3]), math.fabs(n1[4]-n2[4]), 
 			math.fabs(n1[5]-n2[5]), math.fabs(n1[6]-n2[6]))) / step)
@@ -218,7 +236,6 @@ def label_the_edge(n1, n2, kukaID, meshSet, clientId):
 def executeTrajectory(traj_file, kukaID, clientId):
 	traj = []
 	f = open(traj_file)
-	time.sleep(2)
 	previous_state = None
 
 	for line in f:
@@ -226,6 +243,7 @@ def executeTrajectory(traj_file, kukaID, clientId):
 		current_state = map(float, current_state)
 		if (previous_state is not None):
 			local_move(previous_state, current_state, kukaID, clientId)
+			time.sleep(0.04)
 		previous_state = current_state
 
 def local_move(n1, n2, kukaID, clientId):
@@ -256,87 +274,4 @@ def local_move(n1, n2, kukaID, clientId):
 		time.sleep(0.05)
 
 	# print "------------------------------------------\n"
-
-
-		
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Old functionalities kept for legacy
-########################################################################
-def belief_space_estimator(v, nHypotheses):
-	belief_space = []
-	temp_counter = 0
-	while (temp_counter < nHypotheses):
-		x = float(np.random.normal(20, v, 1))
-		if (x <= 0.0):
-			continue
-		belief_space.append(x)
-		temp_counter += 1
-
-	# normalize and sort
-	temp_sum = sum(belief_space)
-	for i in range(0, nHypotheses):
-		belief_space[i] /= temp_sum
-	belief_space.sort()
-	for i in range(0, nHypotheses):
-		belief_space[i] = round(belief_space[i], 2)
-
-	return belief_space
-def createMesh1(meshfile, scale, pos, angles):
-	_c = p.createCollisionShape(shapeType=p.GEOM_MESH, 
-			fileName=meshfile, meshScale=[scale, scale, scale])
-	ori = euler_to_quaternion(angles[2], angles[1], angles[0])
-	_v = p.createVisualShape(shapeType=p.GEOM_MESH,
-		fileName=meshfile, meshScale=[scale, scale, scale])
-
-	_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
-							basePosition=pos,baseOrientation=ori)
-
-
-
-
 
