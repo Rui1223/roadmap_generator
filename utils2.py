@@ -63,6 +63,80 @@ def comp_prob(pos, temp_pos, angles, temp_zangle):
 # represented as gaussian distribution, where the mean is the true pose and
 # the variance is where the uncertainty comes from.
 # Each object has different uncertainty level. (But with the same dimension)
+# def createHypoMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale, 
+# 						pos, angles, uncertainty, clientId, static_geometries, benchmarkType, nhypo):
+# 	# starting label index for the current obs
+# 	# with the mesh file and scale 
+# 	# create the collision and visual shape of the object
+# 	meshes = []
+
+# 	if objectRole == "invisible":
+# 		return meshes
+
+# 	_c = p.createCollisionShape(shapeType=p.GEOM_MESH, 
+# 			fileName=meshfile, meshScale=[scale, scale, scale], physicsClientId=clientId)
+# 	_v = p.createVisualShape(shapeType=p.GEOM_MESH,
+# 		fileName=meshfile, meshScale=[scale, scale, scale], physicsClientId=clientId)
+# 	## Now we don't directly use the true pose as one of the hypothessis
+	
+# 	# quat = euler_to_quaternion(angles[2], angles[1], angles[0])
+# 	quat = p.getQuaternionFromEuler([angles[0], angles[1], angles[2]])
+# 	'''
+# 	## first put the true pose of the objects into the meshes
+# 	_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
+# 						basePosition=pos,baseOrientation=quat, physicsClientId=clientId)
+# 	meshes.append(Mesh(_m, meshType, objIndx, labelIdx, pos, quat, 1, objectRole))
+# 	'''
+
+# 	## for each hypothesis(None of them are true poses)
+# 	h = 0
+# 	# failureTime = 0
+# 	largest_prob = 0.0
+# 	largest_prob_idx = -1
+# 	while (h < nhypo):
+# 		## generate new pos and new quat according to uncertainty
+# 		temp_px = round(float(np.random.normal(pos[0], uncertainty[0])), 4)
+# 		temp_py = round(float(np.random.normal(pos[1], uncertainty[1])), 4)
+# 		temp_pos = [temp_px, temp_py, pos[2]]
+# 		temp_quat = quat
+# 		temp_zangle = angles[2]
+
+# 		if len(uncertainty) == 3:
+# 			temp_zangle = float(np.random.normal(angles[2], uncertainty[2]))
+# 			# temp_quat = euler_to_quaternion(temp_zangle, angles[1], angles[0])
+# 			temp_quat = p.getQuaternionFromEuler([angles[0], angles[1], temp_zangle])
+
+# 		## compute the unnormalized probability of this hypothesis
+# 		temp_prob = comp_prob(pos, temp_pos, angles, temp_zangle)
+# 		if temp_prob > largest_prob:
+# 			largest_prob = temp_prob
+# 			largest_prob_idx = labelIdx+h
+# 		## create the mesh and save it into meshes
+# 		_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
+# 						basePosition=temp_pos,baseOrientation=temp_quat, physicsClientId=clientId)
+# 		## Before adding the mesh obj into the meshes, check if it collides with static geometries
+# 		# temp_collided = collisionCheck_specificG(_m, static_geometries, benchmarkType, clientId)
+# 		# if (temp_collided):
+# 		# 	p.removeBody(_m, clientId)
+# 		# 	failureTime += 1
+# 		# 	if failureTime % 20 == 0:
+# 		# 		print "failure time: " + str(failureTime)
+# 		# 	continue
+# 		meshes.append(Mesh(_m, meshType, objIndx, labelIdx+h, temp_pos, temp_quat, temp_prob, objectRole))
+# 		h = h + 1
+
+
+# 	## last step: normalize the probability
+# 	temp_probs = []
+# 	for mesh in meshes:
+# 		temp_probs.append(mesh.prob)
+# 	temp_sum = sum(temp_probs)
+# 	for i in xrange(0, len(meshes)):
+# 		meshes[i].setProb(round(temp_probs[i]*0.75/temp_sum, 3))
+# 		f.write( str(labelIdx) + " " + str(meshes[i].objIndx) + " " + str(meshes[i].prob) + "\n" )
+# 		labelIdx += 1
+
+# 	return meshes, largest_prob_idx
 def createHypoMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale, 
 						pos, angles, uncertainty, clientId, static_geometries, benchmarkType, nhypo):
 	# starting label index for the current obs
@@ -72,6 +146,7 @@ def createHypoMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale,
 
 	if objectRole == "invisible":
 		return meshes
+
 	_c = p.createCollisionShape(shapeType=p.GEOM_MESH, 
 			fileName=meshfile, meshScale=[scale, scale, scale], physicsClientId=clientId)
 	_v = p.createVisualShape(shapeType=p.GEOM_MESH,
@@ -107,17 +182,14 @@ def createHypoMesh(f, labelIdx, objIndx, meshfile, meshType, objectRole, scale,
 		temp_prob = comp_prob(pos, temp_pos, angles, temp_zangle)
 		if temp_prob > largest_prob:
 			largest_prob = temp_prob
-			largest_prob_idx = labelIdx+h		
+			largest_prob_idx = labelIdx+h
 		## create the mesh and save it into meshes
 		_m = p.createMultiBody(baseCollisionShapeIndex=_c,baseVisualShapeIndex=_v,
 						basePosition=temp_pos,baseOrientation=temp_quat, physicsClientId=clientId)
-		## Before adding the mesh obj into the meshes, check if it collides with static geometries
+		# Before adding the mesh obj into the meshes, check if it collides with static geometries
 		# temp_collided = collisionCheck_specificG(_m, static_geometries, benchmarkType, clientId)
 		# if (temp_collided):
 		# 	p.removeBody(_m, clientId)
-		# 	failureTime += 1
-		# 	if failureTime % 20 == 0:
-		# 		print "failure time: " + str(failureTime)
 		# 	continue
 		meshes.append(Mesh(_m, meshType, objIndx, labelIdx+h, temp_pos, temp_quat, temp_prob, objectRole))
 		h = h + 1
@@ -188,16 +260,27 @@ def collisionCheck_staticG(kukaID, static_geometries, clientId):
 	isCollision = False
 	## loop through all static geometries
 	for g in static_geometries:
-		contacts = p.getContactPoints(kukaID, g, physicsClientId=clientId)
-		if len(contacts) != 0:
-			isCollision = True
-			# if counter == 1:
-			# 	print "Self Collision with Kuka!!"
-			# print "static collision with " + str(g)
-			break
-	# print "static collision? " + "\t" + str(isCollision)
+		if g != 0:
+			contacts = p.getContactPoints(kukaID, g, physicsClientId=clientId)
+			if len(contacts) != 0:
+				isCollision = True
+				# if counter == 1:
+				# 	print "Self Collision with Kuka!!"
+				# print "static collision with " + str(g)
+				break
+		# print "static collision? " + "\t" + str(isCollision)
 	return isCollision
 
+
+def truePosesCollision(kukaID, truePoses, clientId):
+	truePoseIdx = []
+	## loop through truePoses
+	for m in truePoses:
+		contacts = p.getContactPoints(kukaID, m.m, physicsClientId=clientId)
+		if len(contacts) != 0:
+			## add the index of that true pose
+			truePoseIdx.append(m.objIndx)
+	return set(truePoseIdx)		
 
 
 def collision_with_hypos(kukaID, meshSet, clientId):
@@ -287,92 +370,101 @@ def deleteStaticGeometries(static_geometries, clientId):
 	for g in static_geometries:
 		p.removeBody(g, clientId)
 
-def executeAllTraj(home_configuration, kukaID_e, folderFile, cc, nn, clientId):
+def executeAllTraj(home_configuration, kukaID_e, truePoses, folderFile, cc, nn, clientId):
 
-	time_file = folderFile + "/times_" + str(cc) + "_" + str(nn) + ".txt"
-	simulationDiff = 230 ## 530 for 5000 
+	statistics_file = folderFile + "/statistics_" + str(cc) + "_" + str(nn) + ".txt"
+	## write in (#obs, success, cost) information for each search method
+	f = open(statistics_file, "w")
 
-	startExeTime = time.clock()
 	# print "Back to home configuration"
 	## Put the kuka back to its home configuration
 	for i in range(1,8):
 		result = p.resetJointState(kukaID_e, i, home_configuration[i-1], physicsClientId=clientId)
 	print "A star trajectory"
 	astar_traj_file = folderFile + "/Astartraj_" + str(cc) + "_" + str(nn) + ".txt"
-	executeTrajectory(astar_traj_file, kukaID_e, clientId)
-	time_astar = (time.clock() - startExeTime) * simulationDiff
-	# time_astar = (time.clock() - startExeTime)
+	temp_ncollision, temp_isSuccess, temp_cost = executeTrajectory(astar_traj_file, kukaID_e, truePoses, clientId)
+	f.write( str(temp_ncollision) + " " + str(temp_isSuccess) + " " + str(temp_cost) + "\n" )
 
-	startExeTime = time.clock()
 	# print "Back to home configuration"
 	## Put the kuka back to its home configuration
 	for i in range(1,8):
 		result = p.resetJointState(kukaID_e, i, home_configuration[i-1], physicsClientId=clientId)
 	print "MCR Greedy trajectory"
 	mcrg_traj_file = folderFile + "/MCRGtraj_" + str(cc) + "_" + str(nn) + ".txt"
-	executeTrajectory(mcrg_traj_file, kukaID_e, clientId)
-	time_mcrg = (time.clock() - startExeTime) * simulationDiff
-	# time_mcrg = (time.clock() - startExeTime)
+	temp_ncollision, temp_isSuccess, temp_cost = executeTrajectory(mcrg_traj_file, kukaID_e, truePoses, clientId)
+	f.write( str(temp_ncollision) + " " + str(temp_isSuccess) + " " + str(temp_cost) + "\n" )
 
-	startExeTime = time.clock()
 	# print "Back to home configuration"
 	## Put the kuka back to its home configuration
 	for i in range(1,8):
 		result = p.resetJointState(kukaID_e, i, home_configuration[i-1], physicsClientId=clientId)
 	print "MCR exact trajectory"
 	mcre_traj_file = folderFile + "/MCREtraj_" + str(cc) + "_" + str(nn) + ".txt"
-	executeTrajectory(mcre_traj_file, kukaID_e, clientId)
-	time_mcre = (time.clock() - startExeTime) * simulationDiff
-	# time_mcre = (time.clock() - startExeTime)
+	temp_ncollision, temp_isSuccess, temp_cost = executeTrajectory(mcre_traj_file, kukaID_e, truePoses, clientId)
+	f.write( str(temp_ncollision) + " " + str(temp_isSuccess) + " " + str(temp_cost) + "\n" )
 
-	startExeTime = time.clock()
 	# print "Back to home configuration"
 	## Put the kuka back to its home configuration
 	for i in range(1,8):
 		result = p.resetJointState(kukaID_e, i, home_configuration[i-1], physicsClientId=clientId)
 	print "MaxSuccess greedy trajectory"
 	msg_traj_file = folderFile + "/MSGtraj_" + str(cc) + "_" + str(nn) + ".txt"
-	executeTrajectory(msg_traj_file, kukaID_e, clientId)
-	time_msg = (time.clock() - startExeTime) * simulationDiff
-	# time_msg = (time.clock() - startExeTime)
+	temp_ncollision, temp_isSuccess, temp_cost = executeTrajectory(msg_traj_file, kukaID_e, truePoses, clientId)
+	f.write( str(temp_ncollision) + " " + str(temp_isSuccess) + " " + str(temp_cost) + "\n" )
 
-	startExeTime = time.clock()
 	# print "Back to home configuration"
 	## Put the kuka back to its home configuration
 	for i in range(1,8):
 		result = p.resetJointState(kukaID_e, i, home_configuration[i-1], physicsClientId=clientId)
 	print "MaxSuccess exact trajectory"
 	mse_traj_file = folderFile + "/MSEtraj_" + str(cc) + "_" + str(nn) + ".txt"
-	executeTrajectory(mse_traj_file, kukaID_e, clientId)
-	time_mse = (time.clock() - startExeTime) * simulationDiff
-	# time_mse = (time.clock() - startExeTime)
+	temp_ncollision, temp_isSuccess, temp_cost = executeTrajectory(mse_traj_file, kukaID_e, truePoses, clientId)
+	f.write( str(temp_ncollision) + " " + str(temp_isSuccess) + " " + str(temp_cost) + "\n" )
 
-	## write in these time information for each search method
-	f = open(time_file, "w")
-	f.write( str(time_astar) + "\n" )
-	f.write( str(time_mcrg) + "\n" )
-	f.write( str(time_mcre) + "\n" )
-	f.write( str(time_msg) + "\n" )
-	f.write( str(time_mse) + "\n" )
+	# print "Back to home configuration"
+	## Put the kuka back to its home configuration
+	for i in range(1,8):
+		result = p.resetJointState(kukaID_e, i, home_configuration[i-1], physicsClientId=clientId)
+	print "MCR Most Likely Candidate trajectory"
+	mcrmcg_traj_file = folderFile + "/MCRMCGtraj_" + str(cc) + "_" + str(nn) + ".txt"
+	temp_ncollision, temp_isSuccess, temp_cost = executeTrajectory(mcrmcg_traj_file, kukaID_e, truePoses, clientId)
+	f.write( str(temp_ncollision) + " " + str(temp_isSuccess) + " " + str(temp_cost) + "\n" )
+
 	f.close()
 
 	print "trajectories all executed and time record."
 
 
-def executeTrajectory(traj_file, kukaID, clientId):
+def executeTrajectory(traj_file, kukaID, truePoses, clientId):
 	traj = []
 	f = open(traj_file)
 	previous_state = None
+
+	## Meanwhile compute the cost as well
+	trajectoryCost = 0.0
+	trajectoryCollision = set()
+	isSuccess = 1
 
 	for line in f:
 		current_state = line.split()
 		current_state = map(float, current_state)
 		if (previous_state is not None):
-			local_move(previous_state, current_state, kukaID, clientId)
+			trajectoryCost += calculateEuclidean(previous_state, current_state)
+			trajectoryCollision = trajectoryCollision.union(local_move(previous_state, current_state, kukaID, truePoses, clientId))
 			time.sleep(0.04)
 		previous_state = current_state
 
-def local_move(n1, n2, kukaID, clientId):
+	print "collisions: " + str(trajectoryCollision) + ",  total: " + str(len(trajectoryCollision))
+
+	## now work on success evaluation
+	if len(trajectoryCollision) != 0:
+		isSuccess = 0
+
+
+	return len(trajectoryCollision), isSuccess, trajectoryCost
+
+def local_move(n1, n2, kukaID, truePoses, clientId):
+	local_poseIdx = set()
 	step = 5 * math.pi / 180
 	nseg = int(math.ceil(max(math.fabs(n1[0]-n2[0]), 
 		math.fabs(n1[1]-n2[1]), math.fabs(n1[2]-n2[2]), 
@@ -391,7 +483,19 @@ def local_move(n1, n2, kukaID, clientId):
 		for j in range(1,8):
 			result = p.resetJointState(kukaID,j,intermNode[j-1], physicsClientId=clientId)
 		p.stepSimulation(clientId)
+		## add collision checker
+		temp_poseIdx = truePosesCollision(kukaID, truePoses, clientId)
+		local_poseIdx = local_poseIdx.union(temp_poseIdx)
+
 		time.sleep(0.05)
+	return local_poseIdx
+
+def calculateEuclidean(previous_state, current_state):
+	tempSquare = 0.0
+	for ii in xrange(len(previous_state)):
+		tempSquare += math.pow(previous_state[ii]-current_state[ii] ,2)
+	tempSquare = math.sqrt(tempSquare)
+	return tempSquare
 
 def trueScene_generation(benchmarkType, scene, Objects, clientId):
 	truePoses = []
@@ -426,7 +530,7 @@ def planScene_generation(Objects, benchmarkType, static_geometries,
 		labelIdx = len(meshSet)
 	print "Number of Objects in the planning scene: " + str(nObjectInPlanning)
 	# print "------all hypotheses: " + "(nhypo: " + str(nhypo) + ", " + "noise: " + \
-	# 															str(noise) + ", " + "nn: " + str(nn) + ")------"
+																# str(noise) + ", " + "nn: " + str(nn) + ")------"
 	# printPoses(meshSet)
 	# print "most promising labels: " + str(mostPromisingLabelIdx)
 
@@ -434,7 +538,7 @@ def planScene_generation(Objects, benchmarkType, static_geometries,
 	f_mostPromisingLabels = open(currentMostPromisingLabelsFile, "w")
 	for lll in mostPromisingLabelIdx:
 		f_mostPromisingLabels.write(str(lll) + " ")
-	f_mostPromisingLabels.close()	
+	f_mostPromisingLabels.close()
 	f_label.close()
 
 	return meshSet, nObjectInPlanning

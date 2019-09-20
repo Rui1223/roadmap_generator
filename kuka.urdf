@@ -313,7 +313,10 @@
       <!-- <origin xyz="-0.002 -0.005 0" rpy="0 0 1.57"/> -->
       <geometry>
         <!-- <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/VG3010_UR_Adapter_JDX_VacGrip_v2.stl"/> -->
-        <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/cube.stl"/>
+        <!-- <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/cube.stl"/> -->
+        <!-- <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/suction.stl"/> -->
+        <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/suctionCup1.stl"/>
+        <!-- <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/cube.stl"/> -->
         <!-- <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/jdx_gripper_short.stl"/> -->
       </geometry>
       <material name="Black"/>
@@ -323,68 +326,25 @@
       <!-- <origin xyz="-0.002 -0.005 0" rpy="0 0 1.57"/> -->
       <geometry>
         <!-- <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/collision/VG3010_UR_Adapter_JDX_VacGrip_v2.stl"/> -->
-        <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/collision/cube.stl"/>
+        <!-- <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/collision/cube.stl"/> -->
+        <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/collision/suctionCup1.stl"/>
         <!-- <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/jdx_gripper_short.stl"/> -->
       </geometry>
       <material name="Black"/>
     </collision>
   </link>
-  <joint name="iiwa_joint_wiring" type="fixed">
+<!--  <joint name="iiwa_joint_ft_connection" type="fixed">
     <parent link="iiwa_link_7"/>
-    <child link="iiwa_link_wiring"/>
+    <child link="iiwa_link_ft_connection"/> -->
     <!--<origin xyz="0 0 0.045" rpy="0 0 0"/>-->
-    <origin rpy="0 0 0" xyz="0 0 0.068"/>
-  </joint>
-  <link name="iiwa_link_wiring">
-    <inertial>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <mass value="0.3"/>
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial>
-    <!-- <visual>
-        <origin xyz="-0.00367 0.00886 0.0044" rpy="3.14159 0 1.9634"/>
-        <geometry>
-          <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/visual/suction.stl"/>
-        </geometry>
-        <material name="Black"/>
-      </visual>
-      
-      <collision>
-        <origin xyz="-0.00367 0.00886 0.0044" rpy="3.14159 0 1.9634"/>
-        <geometry>
-          <mesh filename="/home/rui/Documents/research/roadmap_generator/iiwa_description/meshes/iiwa14/collision/suction_collision.stl"/>
-        </geometry>
-        <material name="Black"/>
-      </collision> -->
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0.09 -0.05"/>
-      <!-- <origin xyz="-0.002 -0.005 0" rpy="0 0 1.57"/> -->
-      <geometry>
-        <box size="0.04 0.03 0.03"/>
-      </geometry>
-      <material name="red"/>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0.09 -0.05"/>
-      <!-- <origin xyz="-0.002 -0.005 0" rpy="0 0 1.57"/> -->
-      <geometry>
-        <box size="0.04 0.03 0.03"/>
-      </geometry>
-      <material name="red"/>
-    </collision>
-  </link>
-  <joint name="iiwa_joint_ft_connection" type="fixed">
-    <parent link="iiwa_link_7"/>
-    <child link="iiwa_link_ft_connection"/>
-    <!--<origin xyz="0 0 0.045" rpy="0 0 0"/>-->
-    <origin rpy="0 0 0" xyz="0 0 0.068"/>
+ <!--   <origin rpy="0 0 0" xyz="0 0 0.068"/>
   </joint>
   <link name="iiwa_link_ft_connection">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="0.3"/>
       <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial>
+    </inertial> -->
     <!-- <visual>
         <origin xyz="-0.00367 0.00886 0.0044" rpy="3.14159 0 1.9634"/>
         <geometry>
@@ -400,23 +360,23 @@
         </geometry>
         <material name="Black"/>
       </collision> -->
-    <visual>
-      <origin rpy="0 0 0" xyz="0.08 0.0 -0.05"/>
+<!--    <visual>
+      <origin rpy="0 0 0" xyz="0.08 0.0 -0.05"/> -->
       <!-- <origin xyz="-0.002 -0.005 0" rpy="0 0 1.57"/> -->
-      <geometry>
+ <!--     <geometry>
         <box size="0.02 0.03 0.01"/>
       </geometry>
       <material name="red"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0.08 0 -0.05"/>
+      <origin rpy="0 0 0" xyz="0.08 0 -0.05"/> -->
       <!-- <origin xyz="-0.002 -0.005 0" rpy="0 0 1.57"/> -->
-      <geometry>
+ <!--     <geometry>
         <box size="0.02 0.03 0.01"/>
       </geometry>
       <material name="red"/>
     </collision>
-  </link>
+  </link> -->
   <!-- Load Gazebo lib and set the robot namespace -->
   <!-- Link0 -->
   <gazebo reference="iiwa_link_0">
