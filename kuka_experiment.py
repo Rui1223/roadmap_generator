@@ -15,23 +15,34 @@ import subprocess
 from scipy import spatial
 import cPickle as pickle
 
-planningServer = p.connect(p.DIRECT)
+planningServer = p.connect(p.GUI)
 executingServer = p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 kuka_ee_idx = 8
 
 #lower limits for null space
-ll = [-2.967, -2, -2.96, 0.19, -2.96, -2.09, -3.05]
+ll = [-2.967, -2.06, -2.96, -2.06, -2.96, -2.06, -3.05]
 #upper limits for null space
-ul = [2.967, 2, 2.96, 2.29, 2.96, 2.09, 3.05]
+ul = [2.967, 2.06, 2.96, 2.06, 2.96, 2.06, 3.05]
 #joint ranges for null space
-jr = [5.8, 4, 5.8, 4, 5.8, 4, 6]
+jr = [5.934, 4.12, 5.92, 4.12, 5.92, 4.12, 6.10]
 #restposes for null space
-rp = [0,0,0,-np.pi/2,0,np.pi/2,0]
-# for i in range(p.getNumJoints(kukaID)):
-# 	print(p.getJointInfo(kukaID,i))
+rp = [0, 0, 0, -np.pi/2, 0, np.pi/2, 0]
 
-# p.setTimeStep(5000, planningServer)
+
+static_geometries_planning = []
+static_geometries_executing = []
+# Introduce Kuka arm
+kukaID_p = p.loadURDF("kuka.urdf", useFixedBase=True, flags=p.URDF_USE_SELF_COLLISION or p.URDF_USE_SELF_COLLISION_INCLUDE_PARENT, physicsClientId=planningServer)
+kukaID_e = p.loadURDF("kuka.urdf", useFixedBase=True, flags=p.URDF_USE_SELF_COLLISION or p.URDF_USE_SELF_COLLISION_INCLUDE_PARENT, physicsClientId=executingServer)
+# static_geometries_planning.append(kukaID_p)
+static_geometries_executing.append(kukaID_e)
+print "Kuka Robot: " + str(kukaID_e)
+
+# num_joints = p.getNumJoints(kukaID_e, executingServer)
+# print "Num of joints: " + str(num_joints)
+# for i in range(num_joints):
+# 	print(p.getJointInfo(kukaID_e, i, executingServer))
 
 
 bt = sys.argv[1]
@@ -39,15 +50,6 @@ scene = sys.argv[2]
 nHypo = int(sys.argv[3])
 noiseLevel = float(sys.argv[4])
 nsamples = int(sys.argv[5])
-
-static_geometries_planning = []
-static_geometries_executing = []
-# Introduce Kuka arm
-kukaID_p = p.loadURDF("kuka.urdf", useFixedBase=True, flags=p.URDF_USE_SELF_COLLISION or p.URDF_USE_SELF_COLLISION_INCLUDE_PARENT, physicsClientId=planningServer)
-kukaID_e = p.loadURDF("kuka.urdf", useFixedBase=True, flags=p.URDF_USE_SELF_COLLISION or p.URDF_USE_SELF_COLLISION_INCLUDE_PARENT, physicsClientId=executingServer)
-static_geometries_planning.append(kukaID_p)
-static_geometries_executing.append(kukaID_e)
-print "Kuka Robot: " + str(kukaID_e)
 
 # generate the static geometries
 ######################################################################
@@ -531,7 +533,7 @@ truePoses, nObjectInExecuting = utils1.trueScene_generation(bt, scene, Objects, 
 ## Now generate planning scene based on nhypo and noiseLevel
 meshSet, nObjectInPlanning = utils1.planScene_generation(Objects, bt, static_geometries_planning,
 															path, nHypo, noiseLevel, planningServer)
-
+'''
 ######################################roadmap generation###############################################
 startTime = time.clock()
 ###### specify q_start and set of q_goal first ######
@@ -593,7 +595,7 @@ for hp in xrange(nHypo):
 				# print "Collide with Hypos: " + str(collidedHypos)
 				## compute the survivability
 				if hp in collidedHypos:
-					# the end effector collides with the pose it deems as the target pose
+					## the end effector collides with the pose it deems as the target pose
 					temp_survival = 0.0
 					temp_trials_ee += 1
 					# print "Survival: " + str(temp_survival)
@@ -912,6 +914,7 @@ print "MaxSuccess exact trajectory"
 mse_traj_file = path + "/MSEtraj.txt"
 utils1.executeTrajectory(mse_traj_file, kukaID_e, executingServer)
 print "total time: " + str(time.clock() - startTime)
+'''
 
 time.sleep(10000)
 

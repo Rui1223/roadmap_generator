@@ -47,7 +47,7 @@ def euler_to_quaternion(yaw, pitch, roll):
 '''
 
 def comp_prob(pos, temp_pos, angles, temp_zangle):
-	## paramter tunning for mimicing sensors
+	## parameter tunning for mimicing sensors
 	alpha = 15.0
 	beta = 15.0
 	gamma = 0.003
@@ -168,7 +168,7 @@ def printPoses(meshes):
 	print "----------------------------\n"
 
 def collisionCheck_specificG(m, static_geometries, mode, clientId):
-	isCollision = False;
+	isCollision = False
 	for g in static_geometries:
 		if mode == "table" and str(g) == "1":
 			continue
@@ -481,7 +481,7 @@ def planScene_generation(Objects, benchmarkType, static_geometries,
 	f_mostPromisingLabels = open(currentMostPromisingLabelsFile, "w")
 	for lll in mostPromisingLabelIdx:
 		f_mostPromisingLabels.write(str(lll) + " ")
-	f_mostPromisingLabels.close()	
+	f_mostPromisingLabels.close()
 	f_label.close()
 
 	return meshSet, nObjectInPlanning

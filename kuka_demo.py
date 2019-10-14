@@ -98,7 +98,7 @@ if bt == "table":
 															physicsClientId=planningServer)
 		result_e = p.resetJointState(kukaID_e, i, home_configuration[i-1], 
 															physicsClientId=executingServer)
-######################################################################	
+######################################################################
 	# if scene == "3":
 	# 	path = table_path + "/scenario3"
 	# 	try:
