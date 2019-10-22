@@ -47,12 +47,14 @@
     </collision>
   </link>
   <!-- joint list -->
-  <joint name="torso_joint_0" type="revolute">
+  <!-- <joint name="torso_joint_0" type="revolute"> -->
+  <joint name="torso_joint_0" type="fixed">
     <parent link="base_link"/>
     <child link="torso_link"/>
     <origin rpy="0 0 0" xyz="0.09257 0 0.877"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="100" lower="-2.9570" upper="2.9570" velocity="2.26"/>
+    <!-- <axis xyz="0 0 1"/> -->
+    <!-- <limit effort="100" lower="-2.9570" upper="2.9570" velocity="2.26"/> -->
+    <!-- <limit effort="100" lower="-0.0001" upper="0.0001" velocity="2.26"/> -->
   </joint>
   <!-- end of joint list -->
   <link name="arm_left_link_1_s">
@@ -396,6 +398,7 @@
     <parent link="arm_left_link_tool0"/>
     <child link="motoman_left_hand"/>
     <origin rpy="3.141 0 0" xyz="0 0 -0.07"/>
+    <!-- <origin rpy="3.141 0 0" xyz="0 0 0.0"/> -->
   </joint>
   <link name="motoman_left_hand">
     <visual>
@@ -428,7 +431,8 @@
   <joint name="motoman_right_joint_pre_ee" type="fixed">
     <parent link="arm_right_link_tool0"/>
     <child link="motoman_right_hand"/>
-    <origin rpy="3.141 0 0" xyz="0 0 -0.0"/>
+    <!-- <origin rpy="3.141 0 0" xyz="0 0 -0.0"/> -->
+    <origin rpy="3.141 0 0" xyz="0 0 -0.035"/>
   </joint>
   <link name="motoman_right_hand">
     <visual>

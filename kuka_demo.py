@@ -621,7 +621,7 @@ if mode == "g":
 	## Now generate planning scene based on nhypo and noiseLevel
 	meshSet, nObjectInPlanning = utils1.planScene_generation(Objects, bt, static_geometries_planning,
 																path, nHypo, noiseLevel, planningServer)
-	'''
+	
 	######################################roadmap generation###############################################
 	startTime = time.clock()
 	###### specify q_start and set of q_goal first ######
@@ -934,7 +934,7 @@ if mode == "g":
 	print "roadmap generated with " + str(len(nodes)) + " nodes in " + str(time.clock() - startTime) + " second."
 
 	print len(nodes)
-	'''
+	
 #####################################################################################################################
 #####################################################################################################################
 	raw_input("enter to exit...")

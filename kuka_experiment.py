@@ -533,7 +533,7 @@ truePoses, nObjectInExecuting = utils1.trueScene_generation(bt, scene, Objects, 
 ## Now generate planning scene based on nhypo and noiseLevel
 meshSet, nObjectInPlanning = utils1.planScene_generation(Objects, bt, static_geometries_planning,
 															path, nHypo, noiseLevel, planningServer)
-'''
+
 ######################################roadmap generation###############################################
 startTime = time.clock()
 ###### specify q_start and set of q_goal first ######
@@ -914,7 +914,7 @@ print "MaxSuccess exact trajectory"
 mse_traj_file = path + "/MSEtraj.txt"
 utils1.executeTrajectory(mse_traj_file, kukaID_e, executingServer)
 print "total time: " + str(time.clock() - startTime)
-'''
+
 
 time.sleep(10000)
 
