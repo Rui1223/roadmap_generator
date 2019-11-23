@@ -80,8 +80,8 @@ if bt == "table":
 		pass
 	print "---------Enter to table scene!----------"
 	### create the known geometries - table ###
-	table_dim = np.array([0.8, 1.3, 0.6])
-	tablePosition=[0, 0, table_dim[2]/2]
+	table_dim = np.array([0.555, 1.11, 0.59])
+	tablePosition = [0, 0, table_dim[2]/2]
 	table_c_p = p.createCollisionShape(shapeType=p.GEOM_BOX,
 							halfExtents=table_dim/2, physicsClientId=planningServer)
 	table_v_p = p.createVisualShape(shapeType=p.GEOM_BOX,
@@ -97,8 +97,28 @@ if bt == "table":
 	known_geometries_planning.append(tableM_p)
 	known_geometries_executing.append(tableM_e)
 	print "table: " + str(tableM_e)
+	### create the known geometries - standingBase  ###
+	standingBase_dim = np.array([0.915, 0.62, 0.19])
+	standingBasePosition = [tablePosition[0]-table_dim[0]/2-standingBase_dim[0]/2-0.01, 
+																tablePosition[1], standingBase_dim[2]/2]
+	standingBase_c_p = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+								halfExtents=standingBase_dim/2, physicsClientId=planningServer)
+	standingBase_v_p = p.createVisualShape(shapeType=p.GEOM_BOX, 
+								halfExtents=standingBase_dim/2, physicsClientId=planningServer)
+	standingBaseM_p = p.createMultiBody(baseCollisionShapeIndex=standingBase_c_p, baseVisualShapeIndex=standingBase_v_p,
+								basePosition=standingBasePosition, physicsClientId=planningServer)
+	standingBase_c_e = p.createCollisionShape(shapeType=p.GEOM_BOX, 
+								halfExtents=standingBase_dim/2, physicsClientId=executingServer)
+	standingBase_v_e = p.createVisualShape(shapeType=p.GEOM_BOX, 
+								halfExtents=standingBase_dim/2, physicsClientId=executingServer)
+	standingBaseM_e = p.createMultiBody(baseCollisionShapeIndex=standingBase_c_e, baseVisualShapeIndex=standingBase_v_e,
+								basePosition=standingBasePosition, physicsClientId=executingServer)
+	known_geometries_planning.append(standingBaseM_p)
+	known_geometries_executing.append(standingBaseM_e)
+	print "standing base: " + str(standingBaseM_e)
 	### reset the base of motoman
-	motomanBasePosition = [tablePosition[0]-table_dim[0]/2-0.4, tablePosition[1], 0.0]
+	motomanBasePosition = [standingBasePosition[0], standingBasePosition[1], 
+													standingBasePosition[2]+standingBase_dim[2]/2+0.005]
 	motomanBaseOrientation = [0, 0, 0, 1]
 	p.resetBasePositionAndOrientation(motomanID_p, motomanBasePosition, 
 									motomanBaseOrientation, physicsClientId=planningServer)
@@ -106,14 +126,7 @@ if bt == "table":
 									motomanBaseOrientation, physicsClientId=executingServer)
 	### set motoman home configuration
 	home_configuration = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-	### left arm with the suction cup
-	for j in range(1, 8):
-		result_p = p.resetJointState(motomanID_p, j, home_configuration[j-1], physicsClientId=planningServer)
-		result_e = p.resetJointState(motomanID_e, j, home_configuration[j-1], physicsClientId=executingServer)
-	### right arm with the fingered gripper
-	for j in range(11, 18):
-		result_p = p.resetJointState(motomanID_p, j, home_configuration[j-4], physicsClientId=planningServer)
-		result_e = p.resetJointState(motomanID_e, j, home_configuration[j-4], physicsClientId=executingServer)
+
 else:
 	shelf_path = "newChapter/shelf"
 	try:
@@ -249,14 +262,7 @@ else:
 									motomanBaseOrientation, physicsClientId=executingServer)
 	### set motoman home configuration
 	home_configuration = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-	### left arm with the suction cup
-	for j in range(1, 8):
-		result_p = p.resetJointState(motomanID_p, j, home_configuration[j-1], physicsClientId=planningServer)
-		result_e = p.resetJointState(motomanID_e, j, home_configuration[j-1], physicsClientId=executingServer)
-	### right arm with the fingered gripper
-	for j in range(11, 18):
-		result_p = p.resetJointState(motomanID_p, j, home_configuration[j-4], physicsClientId=planningServer)
-		result_e = p.resetJointState(motomanID_e, j, home_configuration[j-4], physicsClientId=executingServer)
+
 ########################################################################################################################
 
 ### specify the objects in a chosen scene ###
@@ -270,39 +276,41 @@ if bt == "table" and scene == "1":
 	else:
 		pass
 
-	### generate hypothesis (including the true pose) for each objects
-	### 7 objects includes baseball as the target object	
-	####################################################################################################################
+	### Try different YCB objects in the scene to see the time for importing
+	###################################################################################################################
 	Objects = dict()
-	### objIdx, meshFile, objectName, objectRole, scale, true_pos, true_angles(radians), mass, nHypos
-	Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-		"target", 2, [0.20, 0.0, 0.07+table_dim[2]], [math.pi/5.8, math.pi/0.4, math.pi/2.3], 3.2, nHypos]
-	Objects[1] = [1, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", "tissueBox", 
-		"normal", 1.65, [0.06, 0.16, 0.1+table_dim[2]], [0.0, -math.pi/2, -math.pi/3], 3.5, nHypos]
-	Objects[2] = [2, "/mesh/crayola_24_ct/crayola_24_ct.obj", "crayola", 
-		"normal", 2, [0.13, -0.14, 0.1+table_dim[2]], [math.pi/2, 0.0, math.pi/4], 3.8, nHypos]
-	Objects[3] = [3, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
-		"normal", 2, [-0.16, 0.175, 0.09+table_dim[2]], [-math.pi, 0.0, math.pi/1.3], 4.0, nHypos]
-	Objects[4] = [4, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", "brush", 
-		"normal", 1, [0.17, -0.40, 0.02+table_dim[2]], [0.0, 0.0, -math.pi / 4.5], 1.7, nHypos]
-	Objects[5] = [5, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", "glucoseBottle", 
-		"normal", 1.5, [0.2, 0.38, 0.1+table_dim[2]], [math.pi / 2, 0.0, math.pi], 2.6, nHypos]
-	Objects[6] = [6, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
-		"normal", 2, [-0.1, -0.18, 0.2+table_dim[2]], [math.pi/2, 0.0, 0.0], 4.2, nHypos]
-	Objects[7] = [7, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", "lightbulb", 
-		"phantom", 1.5, [-0.14, 0.41, 0.05+table_dim[2]], [0.0, -math.pi, 9*math.pi/10.0], 2.2, 1]
-	# Objects[7] = [7, "/mesh/004_sugar_box/sugar_box.obj", "sugar box", 
-		# "normal", 1, [-0.14, 0.41, 0.05+table_dim[2]], [0.0, -math.pi, 9*math.pi/10.0], 2.2, nHypos]	
+	### objIdx, meshFile, objectName, objectRole, scale, true_pos, 
+	### true_angles(radians), mass, nHypos, prob(not in the scene)
+	Objects[0] = [0, "/mesh/009_gelatin_box/gelatin_box_512_reduced.obj", "gelatin box", 
+		"target", 1, [0.0, 0.29, 0.002+table_dim[2]], [0, 0, math.pi/7], 1.4, nHypos, 0.08]
+	# Objects[0] = [0, "/mesh/006_mustard_bottle_64/mustard_bottle_64.obj", "mustard bottle",
+	# 	"target", 1, [0.2, 0.2, 0.1+table_dim[2]], [0, 0, 0], 2.1, nHypos, 0.16]
+	Objects[1] = [1, "/mesh/006_mustard_bottle_512/mustard_bottle_512_reduced.obj", "mustard bottle",
+		"normal", 1, [-0.145, 0.37, 0.005+table_dim[2]], [0, 0, math.pi/4], 2.1, nHypos, 0.16]
+	# Objects[0] = [0, "/mesh/006_mustard_bottle_512/mustard_bottle_512.obj", "mustard bottle",
+	# 	"normal", 1, [0.4, 0.4, 0.1+table_dim[2]], [0, 0, 0], 2.1, nHypos, 0.16]
+	Objects[2] = [2, "/mesh/021_bleach_cleanser/bleach_cleanser_512_reduced.obj", "bleach cleanser",
+		"normal", 1, [0.01, 0.37, 0.004+table_dim[2]], [0, 0, 0], 4.2, nHypos, 0.11]
+	Objects[3] = [3, "/mesh/003_cracker_box/cracker_box_512_reduced.obj", "cracker box",
+		"normal", 1, [-0.02, 0.18, 0.005+table_dim[2]], [0, 0, math.pi/2], 4.8, nHypos, 0.10]
+	Objects[4] = [4, "/mesh/008_pudding_box/pudding_box_512_reduced.obj", "pudding box",
+		"phantom", 1, [0.05, 0.33, 0.002+table_dim[2]], [0, 0, -3*math.pi/4], 1.4, nHypos, 0.86]
 
 	### pick goal offset
-	goalPos_offset = [0.0, 0.0, 0.08]
-	goalEuler = [0.0, math.pi, 0.0]  ### tabletop picking
+	goalPos_offset = [0.0, 0.0, 0.05]
+	goalEuler = [0.0, math.pi, 0.0] ### overhan grasps
 	x_ll = motomanBasePosition[0] - 0.35
 	x_ul = tablePosition[0] + table_dim[0]/2
 	y_ll = -table_dim[1]/2
 	y_ul = table_dim[1]/2
 	z_ll = table_dim[2]
 	z_ul = table_dim[2] + 0.9
+
+
+
+
+
+
 	####################################################################################################################
 
 if bt == "table" and scene == "2":
@@ -351,126 +359,64 @@ if bt == "table" and scene == "2":
 	z_ul = table_dim[2] + 0.9
 	####################################################################################################################
 
-if bt == "table" and scene == "3":
-	path = table_path + "/scenario3"
-	print "--------Welcome to " + bt + " sceneario " + scene + "--------"
-	try:
-		os.mkdir(path)
-	except OSError:
-		print "Creation of the directory %s falied\n" % path
-	else:
-		pass
-
-	Objects = dict()
-	### objIdx, meshFile, objectName, objectRole, scale, true_pos, true_angles(radians), mass, nHypos
-	Objects[0] = [0, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-		"target", 2, [0.05, -0.475, 0.07+table_dim[2]], [2*math.pi/7.0, math.pi/4.8, 7*math.pi/6.2], 3.2, nHypos]
-	Objects[1] = [1, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", "glue", 
-			"normal", 1.5, [0.03, -0.32, 0.11+table_dim[2]], [math.pi / 2, 0.0, 67*math.pi/180], 1.8, nHypos]
-	Objects[2] = [2, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
-			"normal", 2, [0.27, -0.48, 0.05+table_dim[2]], [math.pi/2, 0.0, math.pi/4.3], 4.0, nHypos]
-	Objects[3] = [3, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", "tissueBox", 
-			"normal", 1.5, [0.15, -0.15, 0.1+table_dim[2]], [0.0, -math.pi/2, -math.pi/3], 3.5, nHypos]
-	Objects[4] = [4, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", "coffeeJar", 
-		"normal", 2, [-0.2, -0.24, 0.12+table_dim[2]], [math.pi/2, 0.0, -math.pi/3.9], 5.6, nHypos]
-	####################################################################################################################
-
-if bt == "shelf" and scene == "1":
-	path = shelf_path + "/scenario1"
-	print "--------Welcome to " + bt + " sceneario " + scene + "--------"
-	try:
-		os.makedirs(path)
-	except OSError:
-		print "Creation of the directory %s falied\n" % path
-	else:
-		pass
-	### generate hypothesis (including the true pose) for each objects
-	### 8 objects includes baseball as the target object
-	####################################################################################################################
-	Objects = dict()
-	### objIdx, meshFile, objectName, objectRole, scale, true_pos, true_angles(radians), mass, nHypos
-	Objects[0] = [0, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
-		"target", 1.7, [0.0362, 0.33, 0.17+middleflatPosition[2]+flat_dim[2]/2], [math.pi/2, 0.0, 0.0], 4.2, nHypos]
-	Objects[1] = [1, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", "lightbulb", 
-		"normal", 1.5, [-0.12, 0.18, 0.07+middleflatPosition[2]+flat_dim[2]/2], [math.pi/2, 0.0, math.pi/5.7], 2.2, nHypos]
-	Objects[2] = [2, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", "glue", 
-		"normal", 1.5, [-0.065, 0.44, 0.1+middleflatPosition[2]+flat_dim[2]/2], [math.pi / 2, 0.0, 25*math.pi/180], 1.8, nHypos]
-	Objects[3] = [3, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", "tissueBox", 
-		"normal", 1.5, [-0.2, -0.31, 0.06+middleflatPosition[2]+flat_dim[2]/2], [0.0, 0.0, -math.pi/1.2], 3.5, nHypos]
-	Objects[4] = [4, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
-		"normal", 2, [0.1, 0.24, 0.05+shelfbase_dim[2]], [math.pi/2, 0.0, math.pi/4.3], 4.0, nHypos]
-	Objects[5] = [5, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-		"normal", 2, [-0.2, 0.36, 0.07+shelfbase_dim[2]], [3*math.pi/5.5, 7*math.pi/6.2, math.pi/1.9], 3.2, nHypos]
-	Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", "glucoseBottle", 
-		"normal", 1.5, [-0.23, -0.43, 0.1+shelfbase_dim[2]], [math.pi / 2, 0.0, math.pi], 2.6, nHypos]
-	Objects[7] = [7, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", "brush", 
-		"normal", 1, [0.07, -0.32, 0.02+shelfbase_dim[2]], [0.0, 0.0, -math.pi/3.1], 1.7, nHypos]
-	### pick goal offset
-	goalPos_offset = [-0.12, 0.0, 0.0]
-	goalEuler = [math.pi/2, 0.0, 0.0] ### side picking
-	x_ll = motomanBasePosition[0] - 0.35
-	# x_ll = motomanBasePosition[0] - standingBase_dim[0] / 2 - 0.2
-	x_ul = shelfbackPosition[0] - shelfback_dim[0] / 2
-	y_ll = middleflankPosition[1] + flank_dim[1] / 2
-	y_ul = leftflankPosition[1] - flank_dim[1] / 2
-	z_ll = middleflatPosition[2] + flat_dim[2] / 2
-	z_ul = topflatPosition[2] - flat_dim[2] / 2
-	####################################################################################################################
-
-if bt == "shelf" and scene == "2":
-	path = shelf_path + "/scenario2"
-	print "--------Welcome to " + bt + " sceneario " + scene + "--------"
-	try:
-		os.makedirs(path)
-	except OSError:
-		print "Creation of the directory %s falied\n" % path
-	else:
-		pass
-	### generate hypothesis (including the true pose) for each objects
-	### 11 objects includes baseball as the target object
-	####################################################################################################################
-	Objects = dict()
-	### objIdx, meshFile, objectName, objectRole, scale, true_pos, true_angles(radians), mass, nHypos
-	Objects[0] = [0, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
-		"target", 1.8, [0.152, 0.45, 0.2+middleflatPosition[2]+flat_dim[2]/2], [math.pi/2, 0.0, -math.pi/5.2], 4.2, nHypos]
-	Objects[1] = [1, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
-		"normal", 2, [-0.2, 0.43, 0.05+middleflatPosition[2]+flat_dim[2]/2], [math.pi/2, 0.0, math.pi/2.9], 4.0, nHypos]
-	Objects[2] = [2, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
-		"normal", 2, [0.15, -0.39, 0.07+shelfbase_dim[2]], [3*math.pi/4.0, 2.5*math.pi, math.pi/6.2], 3.2, nHypos]
-	Objects[3] = [3, "/mesh/ticonderoga_12_pencils/ticonderoga_12_pencils.obj", "pencils", 
-		"normal", 2, [0.05, -0.26, 0.01+middleflatPosition[2]+flat_dim[2]/2], [0.0, -math.pi/2, -math.pi/3.9], 3.4, nHypos]
-	Objects[4] = [4, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", "glue", 
-		"normal", 1.5, [-0.19, -0.48, 0.11+middleflatPosition[2]+flat_dim[2]/2], [math.pi / 2, 0.0, 25*math.pi/180], 1.8, nHypos]
-	Objects[5] = [5, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", "coffeeJar", 
-		"normal", 2, [-0.2, -0.24, 0.12+shelfbase_dim[2]], [math.pi/2, 0.0, -math.pi/3.9], 5.6, nHypos]
-	Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", "glucoseBottle", 
-		"normal", 1.5, [-0.08, 0.3, 0.1+middleflatPosition[2]+flat_dim[2]/2], [math.pi / 2, 0.0, math.pi], 2.6, nHypos]
-	Objects[7] = [7, "/mesh/crayola_24_ct/crayola_24_ct.obj", "crayola", 
-		"normal", 2, [-0.3, 0.24, 0.1+middleflatPosition[2]+flat_dim[2]/2], [0.0, 0.0, -math.pi/6.1], 3.8, nHypos]
-	Objects[8] = [8, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", "tissueBox", 
-		"normal", 1.5, [-0.2, 0.34, 0.085+shelfbase_dim[2]], [0.0, 0.0, -math.pi/1.2], 3.5, nHypos]
-	Objects[9] = [9, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", "lightbulb", 
-		"phantom", 1.5, [0.14, 0.18, 0.05+middleflatPosition[2]+flat_dim[2]/2], [0.0, 0.0, math.pi/6.0], 2.2, 1]
-	Objects[10] = [10, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", "brush", 
-		"invisible", 1, [0.09, -0.21, 0.03+shelfbase_dim[2]], [0.0, 0.0, -math.pi / 3.1], 1.7, 1]
-	### pick goal offset
-	goalPos_offset = [-0.12, 0.0, 0.04]
-	goalEuler = [math.pi/2, 0.0, 0.0] ### side picking
-	x_ll = motomanBasePosition[0] - 0.35
-	# x_ll = motomanBasePosition[0] - standingBase_dim[0] / 2 - 0.2
-	x_ul = shelfbackPosition[0] - shelfback_dim[0] / 2
-	y_ll = middleflankPosition[1] + flank_dim[1] / 2
-	y_ul = leftflankPosition[1] - flank_dim[1] / 2
-	z_ll = middleflatPosition[2] + flat_dim[2] / 2
-	z_ul = topflatPosition[2] - flat_dim[2] / 2
+# if bt == "shelf" and scene == "1":
+# 	path = shelf_path + "/scenario2"
+# 	print "--------Welcome to " + bt + " sceneario " + scene + "--------"
+# 	try:
+# 		os.makedirs(path)
+# 	except OSError:
+# 		print "Creation of the directory %s falied\n" % path
+# 	else:
+# 		pass
+# 	### generate hypothesis (including the true pose) for each objects
+# 	### 11 objects includes baseball as the target object
+# 	####################################################################################################################
+# 	Objects = dict()
+# 	### objIdx, meshFile, objectName, objectRole, scale, true_pos, true_angles(radians), mass, nHypos
+# 	Objects[0] = [0, "/mesh/dasani_water_bottle/dasani_water_bottle.obj", "waterBottle", 
+# 		"target", 1.8, [0.152, 0.45, 0.2+middleflatPosition[2]+flat_dim[2]/2], [math.pi/2, 0.0, -math.pi/5.2], 4.2, nHypos]
+# 	Objects[1] = [1, "/mesh/dove_beauty_bar/dove_beauty_bar.obj", "doveBar", 
+# 		"normal", 2, [-0.2, 0.43, 0.05+middleflatPosition[2]+flat_dim[2]/2], [math.pi/2, 0.0, math.pi/2.9], 4.0, nHypos]
+# 	Objects[2] = [2, "/mesh/rawlings_baseball/rawlings_baseball.obj", "baseball", 
+# 		"normal", 2, [0.15, -0.39, 0.07+shelfbase_dim[2]], [3*math.pi/4.0, 2.5*math.pi, math.pi/6.2], 3.2, nHypos]
+# 	Objects[3] = [3, "/mesh/ticonderoga_12_pencils/ticonderoga_12_pencils.obj", "pencils", 
+# 		"normal", 2, [0.05, -0.26, 0.01+middleflatPosition[2]+flat_dim[2]/2], [0.0, -math.pi/2, -math.pi/3.9], 3.4, nHypos]
+# 	Objects[4] = [4, "/mesh/elmers_washable_no_run_school_glue/elmers_washable_no_run_school_glue.obj", "glue", 
+# 		"normal", 1.5, [-0.19, -0.48, 0.11+middleflatPosition[2]+flat_dim[2]/2], [math.pi / 2, 0.0, 25*math.pi/180], 1.8, nHypos]
+# 	Objects[5] = [5, "/mesh/folgers_classic_roast_coffee/folgers_classic_roast_coffee.obj", "coffeeJar", 
+# 		"normal", 2, [-0.2, -0.24, 0.12+shelfbase_dim[2]], [math.pi/2, 0.0, -math.pi/3.9], 5.6, nHypos]
+# 	Objects[6] = [6, "/mesh/up_glucose_bottle/up_glucose_bottle.obj", "glucoseBottle", 
+# 		"normal", 1.5, [-0.08, 0.3, 0.1+middleflatPosition[2]+flat_dim[2]/2], [math.pi / 2, 0.0, math.pi], 2.6, nHypos]
+# 	Objects[7] = [7, "/mesh/crayola_24_ct/crayola_24_ct.obj", "crayola", 
+# 		"normal", 2, [-0.3, 0.24, 0.1+middleflatPosition[2]+flat_dim[2]/2], [0.0, 0.0, -math.pi/6.1], 3.8, nHypos]
+# 	Objects[8] = [8, "/mesh/kleenex_tissue_box/kleenex_tissue_box.obj", "tissueBox", 
+# 		"normal", 1.5, [-0.2, 0.34, 0.085+shelfbase_dim[2]], [0.0, 0.0, -math.pi/1.2], 3.5, nHypos]
+# 	Objects[9] = [9, "/mesh/soft_white_lightbulb/soft_white_lightbulb.obj", "lightbulb", 
+# 		"phantom", 1.5, [0.14, 0.18, 0.05+middleflatPosition[2]+flat_dim[2]/2], [0.0, 0.0, math.pi/6.0], 2.2, 1]
+# 	Objects[10] = [10, "/mesh/dr_browns_bottle_brush/dr_browns_bottle_brush.obj", "brush", 
+# 		"invisible", 1, [0.09, -0.21, 0.03+shelfbase_dim[2]], [0.0, 0.0, -math.pi / 3.1], 1.7, 1]
+# 	### pick goal offset
+# 	goalPos_offset = [-0.12, 0.0, 0.04]
+# 	goalEuler = [math.pi/2, 0.0, 0.0] ### side picking
+# 	x_ll = motomanBasePosition[0] - 0.35
+# 	x_ul = shelfbackPosition[0] - shelfback_dim[0] / 2
+# 	y_ll = middleflankPosition[1] + flank_dim[1] / 2
+# 	y_ul = leftflankPosition[1] - flank_dim[1] / 2
+# 	z_ll = middleflatPosition[2] + flat_dim[2] / 2
+# 	z_ul = topflatPosition[2] - flat_dim[2] / 2
 	####################################################################################################################
 
 ### At here we finish selecting the specific scene for specific benchmark type
 ### Now let's generate ground truth of the specific scene and specific benchmark
+startTime = time.clock()
 truePoses, nObjectInExecuting = utils_motoman.trueScene_generation(bt, scene, Objects, executingServer)
+print "Time elapsed to load the objects as the ground truth: ", time.clock() - startTime
+startTime = time.clock()
 hypotheses, mostPromisingHypoIdxes, nObjectInPlanning = utils_motoman.planScene_generation(Objects, bt, 
-			known_geometries_planning, nHypos, transErrors[noiseLevel-1], orientErrors[noiseLevel-1], planningServer)
+			known_geometries_planning, transErrors[noiseLevel-1], orientErrors[noiseLevel-1], planningServer)
+print "Time elapsed to load the objects in the planning scene: ", time.clock() - startTime
 print "most promisings: " + str(mostPromisingHypoIdxes)
+
 ### Now we can generate "labelWeights.txt" file
 currentlabelWeightFile = path + "/labelWeights.txt"
 f_labelWeights = open(currentlabelWeightFile, "w")
@@ -485,18 +431,12 @@ for mphi in mostPromisingHypoIdxes:
 f_mostPromisingLabels.write("\n")
 f_mostPromisingLabels.close()
 
+
 '''
 ##############################################roadmap generation########################################################
 startTime  = time.clock()
 ### specify q_start and set of q_goal first
-### q_start 
 q_start = home_configuration
-### set home configuration
-for j in range(1, 8):
-	result_p = p.resetJointState(motomanID_p, j, home_configuration[j-1], physicsClientId=planningServer)
-for j in range(11, 18):
-	result_p = p.resetJointState(motomanID_p, j, home_configuration[j-4], physicsClientId=planningServer)
-# raw_input("Home position set...Press to continue...")
 ### generate goal configurations
 goalSet = []
 goalHypos = []
@@ -506,9 +446,14 @@ MaxTrialsPerEE = 7
 
 ### for each target hypotheses
 for t_hp in xrange(Objects[0][8]):
+	# print "***********For Hypo " + str(t_hp) + "***************"
 	temp_goalsForThatHypo = []
 	temp_survivalForThatHypo = []
-	# print "***********For Hypo " + str(t_hp) + "***************"
+	### specify the position of the goal pose for that particular target hypothsis
+	goal_pose_pos = []
+	for i in xrange(len(goalPos_offset)):
+		goal_pose_pos.append(hypotheses[t_hp].pos[i] + goalPos_offset[i])
+	# print "goal_pose_pos: " + str(goal_pose_pos)
 	temp_trials_pose = 0
 	while temp_trials_pose < MaxTrialsPerPose:
 		# print "-----A new pose-----"
@@ -516,11 +461,7 @@ for t_hp in xrange(Objects[0][8]):
 			result_p = p.resetJointState(motomanID_p, j, home_configuration[j-1], physicsClientId=planningServer)
 		for j in range(11, 18):
 			result_p = p.resetJointState(motomanID_p, j, home_configuration[j-4], physicsClientId=planningServer)
-		p.stepSimulation(planningServer)
-		### specify the position and quaternion of the that particular goal pose
-		goal_pose_pos = []
-		for i in xrange(len(goalPos_offset)):
-			goal_pose_pos.append(hypotheses[t_hp].pos[i] + goalPos_offset[i])
+		### specify the quaternion of that particular goal pose
 		temp_goal_pose_quat = p.getQuaternionFromEuler([goalEuler[0], goalEuler[1], 
 													goalEuler[2]+random.uniform(-math.pi, math.pi)])
 		goal_pose_quat = [temp_goal_pose_quat[0], temp_goal_pose_quat[1], temp_goal_pose_quat[3], temp_goal_pose_quat[2]]
@@ -536,13 +477,12 @@ for t_hp in xrange(Objects[0][8]):
 			p.stepSimulation(planningServer)
 			### check collision for robot self and known obstacles
 			isCollisionSelf = utils_motoman.collisionCheck_selfCollision(motomanID_p, planningServer)
-			# if isCollisionSelf:
-			# 	print "self collision occurs!"
 			isCollisionKnownObs = utils_motoman.collisionCheck_knownObs(motomanID_p, known_geometries_planning, 
 																									planningServer)
 			if isCollisionSelf or isCollisionKnownObs:
-				# raw_input("Collision with robot itself or known obstacles, press ENTER to continue")
-				temp_trials_ee += 2 ## This may be a bad pose, so let's check it quickly
+				# print "Collision with robot itself or known obstacles, ee +2!"
+				temp_trials_ee += 2 ## This may be a bad pose, so let's check it in a quicker way
+				# raw_input("Press Enter to continue")
 				continue
 			else:
 				### check collision condition with all hypos of objects
@@ -583,9 +523,8 @@ for t_hp in xrange(Objects[0][8]):
 			goalSet.append(temp_goalsForThatHypo[idx_rank[mm]])
 			goalHypos.append(t_hp)
 print "goalHypos:" + str(goalHypos)
-'''
 
-'''
+
 ############# start sampling ##############
 currentSamplesFile = path + "/samples.txt"
 f_samples = open(currentSamplesFile, "w")
@@ -600,9 +539,9 @@ while temp_counter < nsamples:
 	ikSolution = p.calculateInverseKinematics(motomanID_p, motoman_ee_idx, 
 									[temp_x, temp_y, temp_z], ll, ul, jr, physicsClientId=planningServer)
 	for j in range(1, 8):
-		result_p = p.resetJointState(motomanID_p, j, q_goal[j-1], physicsClientId=planningServer)
+		result_p = p.resetJointState(motomanID_p, j, ikSolution[j-1], physicsClientId=planningServer)
 	for j in range(11, 18):
-		result_p = p.resetJointState(motomanID_p, j, q_goal[j-4], physicsClientId=planningServer)
+		result_p = p.resetJointState(motomanID_p, j, ikSolution[j-4], physicsClientId=planningServer)
 	p.stepSimulation(planningServer)
 	### check collision for robot self and known obstacles
 	isCollisionSelf = utils_motoman.collisionCheck_selfCollision(motomanID_p, planningServer)
@@ -760,6 +699,19 @@ subprocess.call(executeFile, shell=True)
 utils_motoman.executeAllTraj_example(home_configuration, motomanID_e, truePoses, path, executingServer)
 '''
 time.sleep(10000)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ################## has to go back and solve self collision ############################

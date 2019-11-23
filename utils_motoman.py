@@ -79,23 +79,21 @@ def createTrueMesh(hypoIdx, objIdx, meshFile, objName, objRole, scale, pos, angl
 	return objMesh
 
 def createHypoMesh(currentlabelIdx, objIdx, meshFile, objName, objRole, scale, pos, angles, 
-								transErrors, orientErrors, known_geometries, benchmarkType, nHypos, clientId):
+								transErrors, orientErrors, known_geometries, benchmarkType, nHypos, clientId, notInSceneProb):
 	### starting label index for the current obs (currentlabelIdx)
 	### with the mesh file and scale
 	### create the collision and visual shape of the object
 	hypotheses = []
 
-	### first specify the collision and visual geometry
+	### first specify the collision (they are identical to poses of the same object)
 	_c = p.createCollisionShape(shapeType=p.GEOM_MESH, 
 			fileName=meshFile, meshScale=[scale, scale, scale], physicsClientId=clientId)
-	# _v = p.createVisualShape(shapeType=p.GEOM_MESH,
-	# 		fileName=meshFile, meshScale=[scale, scale, scale], physicsClientId=clientId)
 
 	largest_prob = 0.0
 	largest_prob_idx = currentlabelIdx
-	### for each hypothesis
 	h = 0
 
+	### for each hypothesis
 	while (h < nHypos):
 		### generate new pos and new quat according to transErrors and orientErrors
 		temp_px = float(format(random.uniform(pos[0]-transErrors, pos[0]+transErrors), '.3f'))
@@ -104,13 +102,12 @@ def createHypoMesh(currentlabelIdx, objIdx, meshFile, objName, objRole, scale, p
 		temp_pos = [temp_px, temp_py, pos[2]] ### so far no uncertainty in height (z axis)
 		temp_angles = [angles[0], angles[1], temp_oz] ### so far only uncertainty in the orientation around z axis
 		temp_quat = p.getQuaternionFromEuler(temp_angles)
-		if objRole != "phantom":
-			temp_prob = comp_prob(pos, angles, temp_pos, temp_angles)
-		else:
-			temp_prob = float(format(random.uniform(0.15, 0.35), '.3f'))
+
+		temp_prob = comp_prob(pos, angles, temp_pos, temp_angles)
+		
 		### create the hypothesis mesh and save it into the hypotheses
-		_v = p.createVisualShape(shapeType=p.GEOM_MESH,
-			fileName=meshFile, meshScale=[scale, scale, scale], rgbaColor=[1.0, 1.0, 1.0, temp_prob], physicsClientId=clientId)
+		_v = p.createVisualShape(shapeType=p.GEOM_MESH, fileName=meshFile, 
+				meshScale=[scale, scale, scale], rgbaColor=[1.0, 1.0, 1.0, temp_prob*(1-notInSceneProb)], physicsClientId=clientId)
 		_m = p.createMultiBody(baseCollisionShapeIndex=_c, baseVisualShapeIndex=_v, 
 										basePosition=temp_pos, baseOrientation=temp_quat, physicsClientId=clientId)
 		### Before adding the mesh into the hypotheses, check if it collides with known geometries
@@ -119,35 +116,22 @@ def createHypoMesh(currentlabelIdx, objIdx, meshFile, objName, objRole, scale, p
 			p.removeBody(_m, clientId)
 			continue
 		# print objName + ":" + str(_m)
-		### reached here since it has no collision with known obstacles
-		### temporarily assign a probability
-		### assign a probability for phantom object between 15%-35%
-		# if objRole != "phantom":
-		# 	temp_prob = comp_prob(pos, angles, temp_pos, temp_angles)
-		# else:
-		# 	temp_prob = float(format(random.uniform(0.15, 0.35), '.3f'))
-		
+
+		### reached here since it has no collision with known obstacles		
 		if temp_prob > largest_prob:
 			largest_prob = temp_prob
-			# largest_prob_idx = currentlabelIdx+h
-			largest_prob_idx = int(_m)
+			largest_prob_idx = currentlabelIdx + h
 		### add this hypothesis
-		# hypotheses.append( Mesh(_m, objName, objIdx, currentlabelIdx+h, temp_pos, temp_quat, temp_prob, objRole) )
-		hypotheses.append( Mesh(_m, objName, objIdx, int(_m), temp_pos, temp_quat, temp_prob, objRole) )
+		hypotheses.append( Mesh(_m, objName, objIdx, currentlabelIdx+h, temp_pos, temp_quat, temp_prob, objRole) )
 		h = h + 1
 
 	### last step: normalize the probability
-	if objRole == "phantom":
-		return hypotheses, largest_prob_idx
-	### Otherwise
 	temp_probs = []
 	for hp in hypotheses:
 		temp_probs.append(hp.prob)
 	temp_sum = sum(temp_probs)
-	### specify the probability that the object is not in the scene (random number between 10%-20%)
-	prob_notInScene = float(format(random.uniform(0.1, 0.2), '.3f'))
 	for i in xrange(0, len(hypotheses)):
-		hypotheses[i].setProb(round(temp_probs[i]*(1-prob_notInScene)/temp_sum, 3))
+		hypotheses[i].setProb(round(temp_probs[i]*(1-notInSceneProb)/temp_sum, 3))
 
 	return hypotheses, largest_prob_idx
 
@@ -242,7 +226,7 @@ def checkEdgeValidity(n1, n2, motomanID, known_geometries, clientId):
 
 def label_the_edge(n1, n2, motomanID, hypotheses, clientId):
 	temp_labels = []
-	labels_status = [False] * (hypotheses[-1].hypoIdx + 1)
+	labels_status = [False] * len(hypotheses)
 	step = 8 * math.pi / 180
 	nseg = int(math.ceil(max(math.fabs(n1[0]-n2[0]), math.fabs(n1[1]-n2[1]), 
 			math.fabs(n1[2]-n2[2]), math.fabs(n1[3]-n2[3]), math.fabs(n1[4]-n2[4]), 
@@ -297,20 +281,20 @@ def trueScene_generation(benchmarkType, scene, Objects, clientId):
 	printPoses(truePoses)
 	return truePoses, nObjectInExecuting
 
-def planScene_generation(Objects, benchmarkType, known_geometries, nHypos, transErrors, orientErrors, clientId):
+def planScene_generation(Objects, benchmarkType, known_geometries, transErrors, orientErrors, clientId):
 	hypotheses = []
 	mostPromisingHypoIdxes = []
-	currentlabelIdx = int(known_geometries[-1]) + 1
+	currentlabelIdx = 0
 	nObjectInPlanning = 0
 	for i in xrange(len(Objects)):
 		if Objects[i][3] == "invisible":
 			continue
 		mm, pp = createHypoMesh(currentlabelIdx, Objects[i][0], Objects[i][1], Objects[i][2], Objects[i][3], Objects[i][4], 
-			Objects[i][5], Objects[i][6], transErrors, orientErrors, known_geometries, benchmarkType, nHypos, clientId)
+			Objects[i][5], Objects[i][6], transErrors, orientErrors, known_geometries, benchmarkType, Objects[i][8], clientId, Objects[i][9])
 		hypotheses += mm
 		mostPromisingHypoIdxes.append(pp)
 		nObjectInPlanning += 1
-		currentlabelIdx = int(hypotheses[-1].hypoIdx) + 1
+		currentlabelIdx = len(hypotheses)
 	print "Number of Objects in the planning scene: " + str(nObjectInPlanning)
 	print "-------all hypotheses: " + str(benchmarkType) + "-------"
 	printPoses(hypotheses)
